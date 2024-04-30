@@ -4,21 +4,21 @@ import torch.nn.functional as F
 import photonic_components as opCmp
 
 
-class fldzhyanBlock(nn.Module):
+class clementsBlock(nn.Module):
     def __init__(self, n_blocks: int):
-        super(fldzhyanBlock, self).__init__()
+        super(clementsBlock, self).__init__()
         self.heater = opCmp.waveguide(n_waveguides=n_blocks)
-        self.mmi = opCmp.beamsplitter()
+        self.mzi = opCmp.mzi()
 
     def forward(self, portsA, portsB):
         outPs = self.heater(portsA)
-        y_complex = self.mmi(outPs, portsB)
+        y_complex = self.mzi(outPs, portsB)
         return y_complex
 
 
-class fldzhyanLayer(nn.Module):
+class clementsLayer(nn.Module):
     def __init__(self, n_inputs, is_even_layer):
-        super(fldzhyanLayer, self).__init__()
+        super(clementsLayer, self).__init__()
         self.n_inputs = n_inputs
         self.n_blocks = n_inputs // 2
         self.is_even_layer = is_even_layer
@@ -33,7 +33,7 @@ class fldzhyanLayer(nn.Module):
         if self.is_even_layer is False:
             self.n_blocks = self.n_blocks - 1
 
-        self.ph_blocks = fldzhyanBlock(self.n_blocks)
+        self.ph_blocks = clementsBlock(self.n_blocks)
 
     def forward(self, x_complex):
         y_complex = torch.zeros_like(x_complex)
@@ -65,18 +65,18 @@ class fldzhyanLayer(nn.Module):
         return y_complex
 
 
-class fldzhyanNetwork(nn.Module):
+class clementsNetwork(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int):
-        super(fldzhyanNetwork, self).__init__()
+        super(clementsNetwork, self).__init__()
 
         self.ph_layers = nn.ModuleList()
 
         for i in range(n_layers):
             if i % 2 == 0:
-                self.ph_layers.append(fldzhyanLayer(
+                self.ph_layers.append(clementsLayer(
                     n_inputs, is_even_layer=True))
             else:
-                self.ph_layers.append(fldzhyanLayer(
+                self.ph_layers.append(clementsLayer(
                     n_inputs, is_even_layer=False))
 
     def forward(self, x_complex):
@@ -85,10 +85,10 @@ class fldzhyanNetwork(nn.Module):
         return x_complex
 
 
-class fldzhyanModel(nn.Module):
+class clementsModel(nn.Module):
     def __init__(
             self, n_inputs: int, n_layers: int, n_classes: int, n_networks=2):
-        super(fldzhyanModel, self).__init__()
+        super(clementsModel, self).__init__()
         self.n_inputs = n_inputs
         self.n_layers = n_layers
         self.n_classes = n_classes
@@ -101,7 +101,7 @@ class fldzhyanModel(nn.Module):
         self.biases = nn.ParameterList()
 
         for i in range(self.n_networks):
-            self.ph_networks.append(fldzhyanNetwork(
+            self.ph_networks.append(clementsNetwork(
                 n_layers=self.n_layers, n_inputs=self.n_inputs))
 
             self.diag_layer.append(nn.Parameter(

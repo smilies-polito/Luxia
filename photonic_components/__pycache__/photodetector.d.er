@@ -1,0 +1,6 @@
+##[pylyzer] failed /home/tzamn/Git/GitLabPolito/photonnn/photonic_components/photodetector.py 1714333866 509
+.torch = pyimport "torch"
+
+.nn = pyimport "torch/nn"
+
+.device: Never
