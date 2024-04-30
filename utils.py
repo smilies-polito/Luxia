@@ -76,7 +76,14 @@ def generate_dataloader(
     return datal_train, datal_val, datal_test
 
     
-def init_model(name:str, n_inputs:int, n_classes:int, n_layers:int, n_networks:int) -> torch.nn.Module:
+def init_model(
+    name:str,
+    n_inputs:int,
+    n_classes:int,
+    n_layers:int,
+    n_networks:int,
+    capacity:int=None
+) -> torch.nn.Module:
     """
     Initialize the model based on the name provided
     
@@ -86,20 +93,33 @@ def init_model(name:str, n_inputs:int, n_classes:int, n_layers:int, n_networks:i
         n_classes (int): The number of classes of the dataset
         n_layers (int): The number of layers
         n_networks (int): The number of photonic networks
+        capacity (int): The capacity needed only for the photontorch model
 
     Returns:
         model (torch.nn.Module): The model
     """
 
     if name == 'fldzhyan':
-        from photonic_models.fldzhyan import fldzhyanModel
-        return fldzhyanModel(n_inputs, n_layers, n_classes, n_networks)
+        from photonic_models.fldzhyan import FldzhyanModel
+        return FldzhyanModel(n_inputs, n_layers, n_classes, n_networks)
     elif name == 'clements':
         from photonic_models.clements import clementsModel
         return clementsModel(n_inputs, n_layers, n_classes, n_networks)
+    elif name == 'pt_clements':
+        from pt_models.pt_clements_model import PtClementsModel
+        if capacity is None:
+            raise ValueError('Capacity is required for the PtClementsModel')
+        return PtClementsModel(n_inputs, n_layers, n_classes, capacity, n_networks)
     else:
         raise ValueError('Unknown model: {}'.format(name))
     
+
+def accuracy(
+    pred:torch.Tensor,
+    labels:torch.Tensor
+) -> float:
+    accuracy = (torch.argmax(pred, dim=1) == labels)
+    return accuracy.float().mean().detach().item()
 
 def train_epoch(
     model:torch.nn.Module,
@@ -120,9 +140,11 @@ def train_epoch(
 
     Returns:
         avg_loss (float): The average loss
+        avg_acc (float): The average accuracy
     """
     
     running_loss = []
+    running_acc = []
 
     for _, batch in enumerate(dataloader):
         # zero your gradients for every batch!
@@ -144,9 +166,12 @@ def train_epoch(
         # adjust learnable parameters
         optimizer.step()
 
+        running_acc.append(accuracy(pred, labels))
+
     avg_loss = sum(running_loss) / len(running_loss)
+    avg_acc = sum(running_acc) / len(running_acc)
     
-    return avg_loss
+    return avg_loss, avg_acc
 
 def val_epoch(
     model:torch.nn.Module,
@@ -165,10 +190,12 @@ def val_epoch(
 
     Returns:
         avg_vloss (float): The average validation loss
+        avg_vacc (float): The average validation accuracy
     """
     
     with torch.no_grad():
         running_vloss = []
+        running_vacc = []
         
         for _, batch in enumerate(dataloader):
 
@@ -180,25 +207,28 @@ def val_epoch(
 
             loss = loss_fn(pred, labels)
             running_vloss.append(loss.detach().item())
+
+            running_vacc.append(accuracy(pred, labels))
         
         avg_vloss = sum(running_vloss) / len(running_vloss)
+        avg_vacc = sum(running_vacc) / len(running_vacc)
     
-    return avg_vloss
+    return avg_vloss, avg_vacc
 
 
-def plot_loss(
-    loss_list:list[float],
-    vloss_list:list[float],
+def plot_trend(
+    train_list:list[float],
+    val_list:list[float],
     title:str,
     exp_dir:str,
     filename:str
 ):
     """
-    Plot the loss and validation loss
+    Plot train and validation measures
 
     Args:
-        loss_list (list[float]): The list of losses
-        vloss_list (list[float]): The list of validation losses
+        train_list (list[float]): The list of training measures
+        val_list (list[float]): The list of validation measures
         title (str): The title of the plot
         exp_dir (str): The experiment directory
         filename (str): The filename to save the plot
@@ -207,10 +237,9 @@ def plot_loss(
         None
     """
     plt.figure()
-    plt.plot(loss_list, c='blue')
-    plt.plot(vloss_list, c='orange')
+    plt.plot(train_list, c='blue')
+    plt.plot(val_list, c='orange')
     plt.title(title)
-    plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(['train', 'val'], loc='upper left')
     plt.savefig(os.path.join(exp_dir, filename))

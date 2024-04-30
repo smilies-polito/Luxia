@@ -4,19 +4,20 @@ import os
 import time
 
 from utils import load_dataset, init_model, generate_dataloader,\
-    train_epoch, val_epoch, plot_loss
+    train_epoch, val_epoch, plot_trend
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train the model.')
-    parser.add_argument('--model', type=str, default='fldzhyan', required=False, help='The model to be trained (fldzhyan, clements). Deafult is fldzhyan')
-    parser.add_argument('--dataset', type=str, default='digits', required=False, help='The dataset (mnist, digits, iris). Default is iris.')
-    parser.add_argument('--n_layers', type=int, default=1, required=False, help='The number of layers in the network. Default is 1.')
+    parser.add_argument('--model', type=str, default='fldzhyan', required=True, help='The model to be trained (fldzhyan, clements, pt_clements). Deafult is fldzhyan')
+    parser.add_argument('--dataset', type=str, default='iris', required=True, help='The dataset (mnist, digits, iris). Default is iris.')
+    parser.add_argument('--n_layers', type=int, default=2, required=True, help='The number of layers in the network. Default is 2.')
     parser.add_argument('--n_networks', type=int, default=2, required=False, help='The number of photonic networks. Default is 2.')
-    parser.add_argument('--epoch', type=int, default=50, required=False, help='The number of epochs. Default is 50.')
-    parser.add_argument('--batch_size', type=int, default=64, required=False, help='The number of samples per batch. Default is 64.')
+    parser.add_argument('--capacity', type=int, default=None, required=False, help='The capacity of the photontorch network. Required only for the photontorch model.')
+    parser.add_argument('--epoch', type=int, default=200, required=False, help='The number of epochs. Default is 50.')
+    parser.add_argument('--batch_size', type=int, default=12, required=False, help='The number of samples per batch. Default is 64.')
     parser.add_argument('--val_frac', type=float, default=0.1, required=False, help='The fraction (0-1) of the original training data to be used for validation. Default is 0.1.')
-    parser.add_argument('--lr', type=float, default=1e-4, required=False, help='The learning rate. Default is 1e-4.')
+    parser.add_argument('--lr', type=float, default=1e-3, required=False, help='The learning rate. Default is 1e-3.')
     parser.add_argument('--exp_dir', type=str, default='experiment', required=False, help='The experiment directory. Default is experiment.')
     parser.add_argument('--seed', type=int, default=1, required=False, help='The seed. Default is 1e-4.')
     parser.add_argument('--verbose', type=bool, default=True, required=False, help='Verbosity.')
@@ -59,7 +60,8 @@ if __name__ == '__main__':
         n_inputs=n_inputs,
         n_classes=n_classes,
         n_layers=args.n_layers,
-        n_networks=args.n_networks
+        n_networks=args.n_networks,
+        capacity=args.capacity,
     ).to(device)
     os.makedirs(args.exp_dir, exist_ok=True)
     torch.save(model, os.path.join(args.exp_dir, f"model_epoch{0:03d}.pth"))
@@ -92,20 +94,26 @@ if __name__ == '__main__':
     # Define the variables needed for epoch loop
     avg_loss_list = []
     avg_vloss_list = []
+    avg_acc_list = []
+    avg_vacc_list = []
 
     improv_counter = 0
-    improv_th = 5
+    improv_th = 10
     avg_vloss_best = 100_000_000
     model_best = None
 
-    plot_every = 10
+    plot_every = 50
+
+    # TODO
+    # if args.model == 'pt_clements':
+    #     set_environment()
 
     for epoch in range(args.epoch):
         print(f'EPOCH {epoch+1}:')
         start = time.time()
 
         model.train()
-        avg_loss = train_epoch(
+        avg_loss, avg_acc = train_epoch(
             model=model,
             optimizer=optimizer,
             loss_fn=loss_fn,
@@ -115,7 +123,7 @@ if __name__ == '__main__':
         
         # we don't need gradients to evaluate the model
         model.eval()
-        avg_vloss = val_epoch(
+        avg_vloss, avg_vacc = val_epoch(
             model=model,
             loss_fn=loss_fn,
             device=device,
@@ -128,23 +136,33 @@ if __name__ == '__main__':
 
         avg_loss_list.append(avg_loss)
         avg_vloss_list.append(avg_vloss)
+        avg_acc_list.append(avg_acc)
+        avg_vacc_list.append(avg_vacc)
         print(f'LOSS train {avg_loss} valid {avg_vloss}')
+        print(f'ACC train {avg_acc} valid {avg_vacc}')
                 
         if avg_vloss < avg_vloss_best:
             improv_counter += 1
             avg_vloss_best = avg_vloss
             if improv_counter>=improv_th:
                 print("Saving model...")
-                torch.save(model, os.path.join(args.exp_dir, f"rnn_epoch{epoch+1:03d}.pth"))
+                torch.save(model, os.path.join(args.exp_dir, f"model_epoch{epoch+1:03d}.pth"))
                 improv_counter = 0
         
         if (epoch+1)%plot_every==0:
-            plot_loss(
+            plot_trend(
                 avg_loss_list,
                 avg_vloss_list,
                 'Loss',
                 args.exp_dir,
                 f'loss_epoch{epoch+1:03d}.png'
+            )
+            plot_trend(
+                avg_acc_list,
+                avg_vacc_list,
+                'Accuracy',
+                args.exp_dir,
+                f'acc_epoch{epoch+1:03d}.png'
             )
 
         end = time.time()
