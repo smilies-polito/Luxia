@@ -1,6 +1,0 @@
-##[pylyzer] failed /home/tzamn/Git/GitLabPolito/photonnn/photonic_components/beamsplitter.py 1714343845 1029
-.torch = pyimport "torch"
-
-.nn = pyimport "torch/nn"
-
-.device: Never

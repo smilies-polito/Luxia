@@ -1,7 +1,6 @@
-from .beamsplitter import beamsplitter
-
-from .waveguide import waveguide 
-from .mzi import mzi
-from .photodetector import photodetector
+from .beamsplitter import Beamsplitter
+from .waveguide import Waveguide 
+from .mzi import Mzi
+from .photodetector import Photodetector
 
 PACKAGE_VERSION = 1.0

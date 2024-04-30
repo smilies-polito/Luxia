@@ -5,9 +5,9 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class waveguide(nn.Module):
+class Waveguide(nn.Module):
     def __init__(self, n_waveguides):
-        super(waveguide, self).__init__()
+        super(Waveguide, self).__init__()
         phi = 2*torch.pi*torch.rand(n_waveguides)
         self.phase_shift = nn.Parameter(phi, requires_grad=True)
 

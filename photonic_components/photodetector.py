@@ -5,9 +5,9 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class photodetector(nn.Module):
+class Photodetector(nn.Module):
     def __init__(self):
-        super(photodetector, self).__init__()
+        super(Photodetector, self).__init__()
 
     def forward(self, waveInput):
         real_squared_part = torch.square(torch.real(waveInput))
