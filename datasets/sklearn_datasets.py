@@ -19,13 +19,18 @@ def fetch_iris():
     labels = torch.tensor(iris['target'], dtype=torch.long)
 
     # Total n dat 150 => 120 for train and 30 for test
-    data_train_val, data_test, labels_train_val, labels_test = train_test_split(
+    data_train, data_test, labels_train, labels_test = train_test_split(
         data_scaled, labels, test_size=0.2, random_state=2)
-    return data_train_val, labels_train_val, data_test, labels_test
+    print('data_train', data_train.shape)
+    print('labels_train', labels_train.shape)
+    print('data_test', data_test.shape)
+    print('labels_test', labels_test.shape)
+
+    return data_train, labels_train, data_test, labels_test
 
 
 def fetch_digits():
-    print("Start DIGITS_np_dataset")
+    print("Start DIGITS_np Dataset")
     ds = load_digits()
     data = ds['data']
     # WARNING: when the model is not optical Federico is using StandardScaler()
@@ -34,7 +39,11 @@ def fetch_digits():
     labels = torch.tensor(ds['target'], dtype=torch.long)
 
     # Total n dat 150 => 120 for train and 30 for test
-    data_train_val, data_test, labels_train_val, labels_test = train_test_split(
+    data_train, data_test, labels_train, labels_test = train_test_split(
         data_scaled, labels, test_size=0.2, random_state=2)
-    print(data_train_val.shape)
-    return data_train_val, labels_train_val, data_test, labels_test
+    print('data_train', data_train.shape)
+    print('labels_train', labels_train.shape)
+    print('data_test', data_test.shape)
+    print('labels_test', labels_test.shape)
+
+    return data_train, labels_train, data_test, labels_test
