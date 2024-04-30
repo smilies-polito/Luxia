@@ -6,7 +6,7 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class beamsplitter(nn.Module):
+class Beamsplitter(nn.Module):
     """
     Two port beam splitter, for the moment it implments only the matrix of and MMI and it can be visualized as follows:
 
@@ -17,7 +17,7 @@ class beamsplitter(nn.Module):
     """
 
     def __init__(self):
-        super(beamsplitter, self).__init__()
+        super(Beamsplitter, self).__init__()
         one_sqrt2 = 1 / torch.sqrt(torch.tensor(2.0))
         self._element1 = one_sqrt2 * torch.tensor([1+0j], device=device)
         self._element2 = one_sqrt2 * torch.tensor([0+1j], device=device)
