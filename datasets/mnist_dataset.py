@@ -16,6 +16,7 @@ def fetch_mnist():
     # Normalize the values to be between 0 and 1
     data_train = reshaped_tensor.float() / 255.0
     print('data_train', data_train.shape)
+    print('labels_train', labels_train.shape)
 
     data_test = datasets.MNIST(
         root='./data', train=False, download=True,
@@ -26,4 +27,6 @@ def fetch_mnist():
     # Normalize the values to be between 0 and 1
     data_test = reshaped_tensor.float() / 255.0
     print('data_test', data_test.shape)
+    print('labels_test', labels_test.shape)
+    
     return data_train, labels_train, data_test, labels_test
