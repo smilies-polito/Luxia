@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-import Beamsplitter as bs
-import Waveguide as wg
+from .beamsplitter import Beamsplitter
+from .waveguide import Waveguide
 
 
 # Select GPU if available, else fall back to CPU
@@ -11,8 +11,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class Mzi(nn.Module):
     """
-    March Zender Interferometer, for the moment it implments with 2 beamsplitters of the class
-    beamsplitter
+    March Zender Interferometer, for the moment it implemented with 2
+    beamsplitters beamsplitter and a wabeguide as a heater
 
         A -- --[w]-- --C
             X       X
@@ -20,11 +20,11 @@ class Mzi(nn.Module):
 
     """
 
-    def __init__(self):
+    def __init__(self, n_mzi: int):
         super(Mzi, self).__init__()
-        self.mmi0 = bs.Beamsplitter()
-        self.mmi1 = bs.Beamsplitter()
-        self.heater = wg.Waveguide()
+        self.mmi0 = Beamsplitter()
+        self.heater = Waveguide(n_wg=n_mzi)
+        self.mmi1 = Beamsplitter()
 
     def forward(self, portA, portB):
         """
@@ -35,7 +35,7 @@ class Mzi(nn.Module):
 
         Returns:
         """
-        wave = self.mmi0(portA, portB)
-        y_0 = self.heater(wave[:, 0])
-        y = self.mmi1(y_0, wave[:, 1])
-        return y
+        wave_0, wave_1 = self.mmi0(portA, portB)
+        outPs = self.heater(wave_0)
+        y_0, y_1 = self.mmi1(outPs, wave_1)
+        return y_0, y_1

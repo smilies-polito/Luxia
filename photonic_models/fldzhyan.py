@@ -1,17 +1,22 @@
 import torch
 from torch import nn
-import photonic_components as opCmp
+from .photonic_components.waveguide import Waveguide
+from .photonic_components.beamsplitter import Beamsplitter
+from .photonic_components.photodetector import Photodetector
 
 
 class FldzhyanBlock(nn.Module):
     def __init__(self, n_blocks: int):
         super(FldzhyanBlock, self).__init__()
-        self.heater = opCmp.Waveguide(n_waveguides=n_blocks)
-        self.mmi = opCmp.Beamsplitter()
+        self.heater = Waveguide(n_wg=n_blocks)
+        self.mmi = Beamsplitter()
 
     def forward(self, portsA, portsB):
         outPs = self.heater(portsA)
-        y_complex = self.mmi(outPs, portsB)
+        y_0, y_1 = self.mmi(outPs, portsB)
+
+        # return the elements in an alternative form
+        y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
         return y_complex
 
 
@@ -93,7 +98,7 @@ class FldzhyanModel(nn.Module):
         self.n_classes = n_classes
         self.n_networks = n_networks
 
-        self.photodetectors = opCmp.Photodetector()
+        self.photodetectors = Photodetector()
 
         self.ph_networks = nn.ModuleList()
         self.diag_layer = nn.ParameterList()
@@ -125,14 +130,17 @@ class FldzhyanModel(nn.Module):
         return y
 
     def _resizeX(self, x):
-        # Check if the number of features exceeds the capacity of the photonic network
+        # Check if the number of features exceeds the capacity of the photonic
+        # network
         x_size = x.shape[-1]
         if x_size > self.n_inputs:
             print(
-                f"The number of features exceeds the capacity of the photonic network. The maximum allowed number is: {self.n_inputs}")
+                "The number of features exceeds the capacity of the photonic"
+                f"network. The maximum allowed number is : {self.n_inputs}")
             exit()
 
-        # Resize the input data if the number of features is less than the network capacity
+        # Resize the input data if the number of features is less than the
+        # number of inputs of the photnic network
         if x_size < self.n_inputs:
             x_resized = torch.zeros(
                 (x.shape[0], self.n_inputs), dtype=x.dtype, device=x.device)

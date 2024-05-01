@@ -48,15 +48,17 @@ class PtClementsModel(torch.nn.Module):
         # Add features with zeros if the architecture N > inputs
         x_reals = self._resizeX(x)
 
-        # photontorch requres a tensor in the following order "c", "t", "w", "s", "b"
-        # set features, batch
+        # photontorch tensor must following order "c", "t", "w", "s", "b"
+        # set features, batch instead of batch, features
         x_reals = x_reals.T
         # add 2 new dimentions
         x_reals = x_reals[None, None, ...]
 
         for i in range(self.networks):
-            # make input complex, using stack, photontorch does not support complex numbers
+            # make the input complex using stack, photontorch doesnt support
+            # cmplex numbers
             x_complex = torch.stack([x_reals, torch.zeros_like(x_reals)], 0)
+
             # photontorch requires named tensors
             x_complex = x_complex.rename("c", "t", "w", "s", "b")
             x_reals = self.clementsNet[i](x_complex)
@@ -70,14 +72,14 @@ class PtClementsModel(torch.nn.Module):
         return y
 
     def _resizeX(self, x):
-        # Check if the number of features exceeds the capacity of the photonic network
+        # Check if n features exceeds the capacity of the photonic network
         x_size = x.shape[-1]
         if x_size > self.n_inputs:
-            print(
-                f"The number of features exceeds the capacity of the photonic network. The maximum allowed number is: {self.n_inputs}")
+            print("The number of features exceeds the capacity of the photonic"
+                  "network. The maximum allowed number is: ", self.n_inputs)
             exit()
 
-        # Resize the input data if the number of features is less than the network capacity
+        # Resize the input data if n features is less than the network capacity
         if x_size < self.n_inputs:
             x_resized = torch.zeros(
                 (x.shape[0], self.n_inputs), dtype=x.dtype, device=x.device)
