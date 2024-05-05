@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import photontorch
 import argparse
 import os
@@ -10,27 +11,10 @@ from utils import load_dataset, init_model, generate_dataloader, \
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train the model.')
-    parser.add_argument(
-        '--model', type=str, default='fldzhyan', required=True,
-        help="The model to be trained (fldzhyan, clements, pt_clements)."
-        "Deafult is fldzhyan"
-    )
+    # Parameters for the training
     parser.add_argument(
         '--dataset', type=str, default='iris', required=True,
         help='The dataset (mnist, digits, iris). Default is iris.'
-    )
-    parser.add_argument(
-        '--n_layers', type=int, default=2, required=True,
-        help='The number of layers in the network. Default is 2.'
-    )
-    parser.add_argument(
-        '--n_networks', type=int, default=2, required=False,
-        help='The number of photonic networks. Default is 2.'
-    )
-    parser.add_argument(
-        '--capacity', type=int, default=2, required=False,
-        help='The capacity of the photontorch network. Required only for the'
-        'photontorch model.'
     )
     parser.add_argument(
         '--epoch', type=int, default=200, required=False,
@@ -61,25 +45,61 @@ if __name__ == '__main__':
         '--verbose', type=bool, default=True, required=False,
         help='Verbosity.'
     )
+    # Parameters for Photon_NN and Photontorch Models
+    parser.add_argument(
+        '--model', type=str, default='fldzhyan', required=True,
+        help="The model to be trained (fldzhyan, clements, pt_clements)."
+        "Deafult is fldzhyan"
+    )
+    parser.add_argument(
+        '--n_inputs', type=int, default=2, required=True,
+        help='The number of inputs in the photonic network. Default is 2.'
+    )
+    parser.add_argument(
+        '--n_layers', type=int, default=2, required=False,
+        help='The number of layers in the network. Default is 2.'
+        'this parameter is not needed in the photontorch clements model,'
+        'clements model within photontorch is NxN model'
+    )
+    parser.add_argument(
+        '--n_networks', type=int, default=2, required=False,
+        help='The number of photonic networks. Default is 2.'
+    )
+    parser.add_argument(
+        '--capacity', type=int, default=2, required=False,
+        help='The capacity of the photontorch network. Required only for the'
+        'photontorch model.'
+    )
+    parser.add_argument(
+        '--mmi_imbalances', type=bool, default=False, required=False,
+        help='imbalances of the mmi s within the models.'
+        'If True, make sure to create a mmi_imbalances.npy file'
+    )
+    parser.add_argument(
+        '--mmi_i_losses', type=bool, default=False, required=False,
+        help='Insertion losses of the mmi s within the models.'
+        'If True, make sure to create a mmi_i_losses.npy file.'
+    )
     args = parser.parse_args()
 
+    # Prepare the Data Set
     torch.manual_seed(args.seed)
 
     print(f"[*] Loading {args.dataset} dataset")
     data_train, labels_train, data_test, labels_test = load_dataset(
         args.dataset
-    )
 
+    )
     print()
 
     print("[*] Splitting the data into training and validation"
           f"({int(args.val_frac*100):d}%) sets")
 
     print("And generating the dataloaders")
-    n_inputs = data_train.shape[-1]
+    n_features = data_train.shape[-1]
     datal_train, datal_val, datal_test = generate_dataloader(
         val_frac=args.val_frac,
-        n_inputs=n_inputs,
+        n_features=n_features,
         batch_size=args.batch_size,
         shuffle=True,
         seed=args.seed,
@@ -95,6 +115,20 @@ if __name__ == '__main__':
 
     print()
 
+    # Initialize the model
+    # Check if the model include losses and imbalances
+    # FIX: Check why True is not working
+
+    if args.mmi_imbalances is False:
+        mmi_imbalances = torch.tensor(np.load('mmi_imbalances.npy'))
+    else:
+        mmi_imbalances = None
+
+    if args.mmi_i_losses is False:
+        mmi_i_losses = torch.tensor(np.load('mmi_i_losses.npy'))
+    else:
+        mmi_i_losses = None
+
     if args.model == 'pt_clements':
         print("[*] setting enviroment for photontorch model")
         photontorch.set_environment(frequency_domain=True, enable_grad=True)
@@ -103,13 +137,16 @@ if __name__ == '__main__':
 
     print(f"[*] Initialize {args.model} model")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     model = init_model(
         name=args.model,
-        n_inputs=n_inputs,
+        n_inputs=args.n_inputs,
         n_classes=n_classes,
         n_layers=args.n_layers,
         n_networks=args.n_networks,
         capacity=args.capacity,
+        mmi_i_losses=mmi_i_losses,
+        mmi_imbalances=mmi_imbalances
     ).to(device)
     os.makedirs(args.exp_dir, exist_ok=True)
     torch.save(model, os.path.join(args.exp_dir, f"model_epoch{0:03d}.pth"))

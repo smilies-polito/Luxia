@@ -22,15 +22,17 @@ class ElectronicFunction(torch.nn.Module):
 
 
 class PtClementsModel(torch.nn.Module):
-    def __init__(
-            self, n_inputs: int, n_layers: int, n_classes: int,
-            capacity=2, n_networks=2):
+    def __init__(self,
+                 n_inputs: int,
+                 n_classes: int,
+                 capacity=2,
+                 n_networks=2):
 
         super(PtClementsModel, self).__init__()
 
-        self.networks = n_networks
         self.n_inputs = n_inputs
         self.n_classes = n_classes
+        self.networks = n_networks
 
         self.clementsNet = torch.nn.ModuleList()
         self.electronicFunc = torch.nn.ModuleList()

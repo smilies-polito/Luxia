@@ -35,8 +35,8 @@ def load_dataset(
 
 
 def generate_dataloader(
-    val_frac: float, n_inputs: int, batch_size: int, shuffle: bool, seed: int,
-    data_train: torch.Tensor, labels_train: torch.Tensor,
+    val_frac: float, n_features: int, batch_size: int, shuffle: bool,
+    seed: int, data_train: torch.Tensor, labels_train: torch.Tensor,
     data_test: torch.Tensor, labels_test: torch.Tensor
 ) -> tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader,
            torch.utils.data.DataLoader]:
@@ -46,7 +46,7 @@ def generate_dataloader(
     Args:
         val_frac (float): The fraction (0-1) of the original training data to
             be used for validation
-        n_inputs (int): The number of inputs (features) of the dataset
+        n_features (int): The number of features of the dataset
         batch_size (int): The batch size
         shuffle (bool): Whether to shuffle the data
         seed (int): The seed
@@ -70,18 +70,18 @@ def generate_dataloader(
     data_full_val = data_full_list[1]
 
     datal_train = torch.utils.data.DataLoader(
-        LabeledDataset(data_full_train, n_inputs),
+        LabeledDataset(data_full_train, n_features),
         batch_size=batch_size, shuffle=shuffle
     )
 
     datal_val = torch.utils.data.DataLoader(
-        LabeledDataset(data_full_val, n_inputs),
+        LabeledDataset(data_full_val, n_features),
         batch_size=batch_size, shuffle=shuffle
     )
 
     datal_test = torch.utils.data.DataLoader(
         LabeledDataset(
-            torch.cat([data_test, labels_test[:, None]], dim=-1), n_inputs),
+            torch.cat([data_test, labels_test[:, None]], dim=-1), n_features),
         batch_size=batch_size,
         shuffle=shuffle
     )
@@ -93,20 +93,24 @@ def init_model(
     name: str,
     n_inputs: int,
     n_classes: int,
-    n_layers: int,
-    n_networks: int,
-    capacity: int = None
+    n_layers: int = None,
+    n_networks: int = 2,
+    capacity: int = None,
+    mmi_i_losses: torch.Tensor = None,
+    mmi_imbalances: torch.Tensor = None
 ) -> torch.nn.Module:
     """
     Initialize the model based on the name provided
 
     Args:
         name (str): The name of the model to be initialized
-        n_inputs (int): The number of inputs (features) of the dataset
+        n_inputs (int): the number of inputs of the photonic network
         n_classes (int): The number of classes of the dataset
         n_layers (int): The number of layers
         n_networks (int): The number of photonic networks
         capacity (int): The capacity needed only for the photontorch model
+        mmi_i_losses (torch.Tensor): losses of mmis or cross within the network
+        mmi_imbalances (torch.Tensor): imbalances of mmi network
 
     Returns:
         model (torch.nn.Module): The model
@@ -114,16 +118,40 @@ def init_model(
 
     if name == 'fldzhyan':
         from photonic_models.fldzhyan import FldzhyanModel
-        return FldzhyanModel(n_inputs, n_layers, n_classes, n_networks)
+        return FldzhyanModel(n_inputs=n_inputs,
+                             n_layers=n_layers,
+                             n_classes=n_classes,
+                             n_networks=n_networks,
+                             mmi_i_losses=mmi_i_losses,
+                             mmi_imbalances=mmi_imbalances
+                             )
     elif name == 'clements':
         from photonic_models.clements import ClementsModel
-        return ClementsModel(n_inputs, n_layers, n_classes, n_networks)
+        return ClementsModel(n_inputs=n_inputs,
+                             n_layers=n_layers,
+                             n_classes=n_classes,
+                             n_networks=n_networks,
+                             mmi_i_losses=mmi_i_losses,
+                             mmi_imbalances=mmi_imbalances
+                             )
+    elif name == 'clements_bell':
+        from photonic_models.clements_bell import ClementsBellModel
+        return ClementsBellModel(n_inputs=n_inputs,
+                                 n_layers=n_layers,
+                                 n_classes=n_classes,
+                                 n_networks=n_networks,
+                                 mmi_i_losses=mmi_i_losses,
+                                 mmi_imbalances=mmi_imbalances
+                                 )
     elif name == 'pt_clements':
         from pt_models.pt_clements_model import PtClementsModel
         if capacity is None:
             raise ValueError('Capacity is required for the PtClementsModel')
-        m = PtClementsModel(n_inputs, n_layers, n_classes,
-                            capacity, n_networks)
+        m = PtClementsModel(n_inputs=n_inputs,
+                            n_classes=n_classes,
+                            capacity=capacity,
+                            n_networks=n_networks
+                            )
         return m
     else:
         raise ValueError('Unknown model: {}'.format(name))

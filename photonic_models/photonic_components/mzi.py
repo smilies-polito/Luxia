@@ -14,17 +14,39 @@ class Mzi(nn.Module):
     March Zender Interferometer, for the moment it implemented with 2
     beamsplitters beamsplitter and a wabeguide as a heater
 
-        A -- --[w]-- --C
-            X       X
-        B -- ------- --D
-
+         _____ MZI _____
+        |    wg1        |
+        |--- --[w]-- ---|-C
+        |   X       X   |
+        |--- ------- ---|-D
+        |  bs0     bs1  |
+         ---------------
     """
 
-    def __init__(self, n_mzi: int):
+    def __init__(self,
+                 n_mzi: int,
+                 mmi_i_losses: torch.Tensor = None,
+                 mmi_imbalances: torch.Tensor = None
+                 ):
         super(Mzi, self).__init__()
-        self.mmi0 = Beamsplitter()
+        i_loss_0 = None
+        i_loss_1 = None
+        imbalance_0 = None
+        imbalance_1 = None
+        if mmi_i_losses is not None:
+            i_loss_0 = mmi_i_losses[0]
+            i_loss_1 = mmi_i_losses[1]
+        if mmi_imbalances is not None:
+            imbalance_0 = mmi_imbalances[0]
+            imbalance_1 = mmi_imbalances[1]
+
+        self.mmi_0 = Beamsplitter(n_bs=n_mzi,
+                                  i_loss=i_loss_0,
+                                  imbalance=imbalance_0)
         self.heater = Waveguide(n_wg=n_mzi)
-        self.mmi1 = Beamsplitter()
+        self.mmi_1 = Beamsplitter(n_bs=n_mzi,
+                                  i_loss=i_loss_1,
+                                  imbalance=imbalance_1)
 
     def forward(self, portA, portB):
         """
@@ -35,7 +57,7 @@ class Mzi(nn.Module):
 
         Returns:
         """
-        wave_0, wave_1 = self.mmi0(portA, portB)
+        wave_0, wave_1 = self.mmi_0(portA, portB)
         outPs = self.heater(wave_0)
-        y_0, y_1 = self.mmi1(outPs, wave_1)
+        y_0, y_1 = self.mmi_1(outPs, wave_1)
         return y_0, y_1
