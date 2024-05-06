@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from .photonic_components.waveguide import Waveguide
+from .photonic_components.heater import Heater
 from .photonic_components.mzi import Mzi
 from .photonic_components.photodetector import Photodetector
 
@@ -28,7 +28,7 @@ class ClementsBlock(nn.Module):
                  mmi_imbalances: torch.Tensor = None
                  ):
         super(ClementsBlock, self).__init__()
-        self._heater = Waveguide(n_wg=n_blocks)
+        self._heater = Heater(n_heaters=n_blocks)
         self._mzi = Mzi(n_mzi=n_blocks,
                         mmi_i_losses=mmi_i_losses,
                         mmi_imbalances=mmi_imbalances)

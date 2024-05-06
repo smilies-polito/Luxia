@@ -5,10 +5,10 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-class Waveguide(nn.Module):
-    def __init__(self, n_wg=1):
-        super(Waveguide, self).__init__()
-        phi = 2*torch.pi*torch.rand(n_wg)
+class Heater(nn.Module):
+    def __init__(self, n_heaters=1):
+        super(Heater, self).__init__()
+        phi = 2*torch.pi*torch.rand(n_heaters)
         self.phase_shift = nn.Parameter(phi, requires_grad=True)
 
     def forward(self, waveInput):

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from .photonic_components.waveguide import Waveguide
+from .photonic_components.heater import Heater
 from .photonic_components.mzi_dual import MziDual
 from .photonic_components.photodetector import Photodetector
 
@@ -132,7 +132,7 @@ class ClementsBellLayer(nn.Module):
 
         # create the top and bottom heaters
         for i in range(nwgs):
-            self._heaters.append(Waveguide(1))
+            self._heaters.append(Heater(1))
 
     def forward(self, x_complex):
         y_complex = torch.zeros_like(x_complex)
@@ -188,8 +188,8 @@ class ClementsBellNetwork(nn.Module):
         super(ClementsBellNetwork, self).__init__()
         self._n_layers = n_layers
         self._ph_layers = nn.ModuleList()
-        self._ph_first_layer = Waveguide(n_wg=n_inputs)
-        self._ph_last_layer = Waveguide(n_wg=n_inputs)
+        self._ph_first_layer = Heater(n_heaters=n_inputs)
+        self._ph_last_layer = Heater(n_heaters=n_inputs)
 
         for i in range(n_layers):
             i_losses = None

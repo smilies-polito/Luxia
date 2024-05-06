@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from .photonic_components.waveguide import Waveguide
-from .photonic_components.beamsplitter import Beamsplitter
+from .photonic_components.heater import Heater
+from .photonic_components.beamsplitters.mmi import Mmi
 from .photonic_components.photodetector import Photodetector
 
 
@@ -24,10 +24,10 @@ class FldzhyanBlock(nn.Module):
             mmi_imbalances: Tensor of the imbalances of the mmis
         """
         super(FldzhyanBlock, self).__init__()
-        self._heater = Waveguide(n_wg=n_blocks)
-        self._mmi = Beamsplitter(n_bs=n_blocks,
-                                 i_loss=mmi_i_losses,
-                                 imbalance=mmi_imbalances)
+        self._heater = Heater(n_heaters=n_blocks)
+        self._mmi = Mmi(n_mmis=n_blocks,
+                        i_loss=mmi_i_losses,
+                        imbalance=mmi_imbalances)
 
     def forward(self, portsA, portsB):
         outPs = self._heater(portsA)

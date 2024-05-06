@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from .beamsplitter import Beamsplitter
-from .waveguide import Waveguide
+from .beamsplitters.mmi import Mmi
+from .heater import Heater
 
 
 # Select GPU if available, else fall back to CPU
@@ -40,15 +40,15 @@ class MziDual(nn.Module):
             imbalance_0 = mmi_imbalances[0]
             imbalance_1 = mmi_imbalances[1]
 
-        self.mmi_0 = Beamsplitter(n_bs=n_mzi,
-                                  i_loss=i_loss_0,
-                                  imbalance=imbalance_0)
+        self.mmi_0 = Mmi(n_mmis=n_mzi,
+                         i_loss=i_loss_0,
+                         imbalance=imbalance_0)
         # Double of waveguides
-        self.heater_0 = Waveguide(n_wg=n_mzi)
-        self.heater_1 = Waveguide(n_wg=n_mzi)
-        self.mmi_1 = Beamsplitter(n_bs=n_mzi,
-                                  i_loss=i_loss_1,
-                                  imbalance=imbalance_1)
+        self.heater_0 = Heater(n_heaters=n_mzi)
+        self.heater_1 = Heater(n_heaters=n_mzi)
+        self.mmi_1 = Mmi(n_mmis=n_mzi,
+                         i_loss=i_loss_1,
+                         imbalance=imbalance_1)
 
     def forward(self, portA, portB):
         """

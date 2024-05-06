@@ -4,7 +4,7 @@
 ### Beamsplitter
 ### Mzi
 ### Photodetector
-### Waveguide
+### Heater
 
 ## photonic_models
 ### Clements
