@@ -5,7 +5,8 @@ import argparse
 import os
 import time
 
-from utils import load_dataset, init_model, generate_dataloader, \
+from util.init_model import init_model
+from util.utils import load_dataset, generate_dataloader, \
     train_epoch, val_epoch, plot_trend
 
 
@@ -17,7 +18,7 @@ if __name__ == '__main__':
         help='The dataset (mnist, digits, iris). Default is iris.'
     )
     parser.add_argument(
-        '--epoch', type=int, default=200, required=False,
+        '--epoch', type=int, default=50, required=False,
         help='The number of epochs. Default is 50.'
     )
     parser.add_argument(
@@ -70,16 +71,17 @@ if __name__ == '__main__':
         help='The capacity of the photontorch network. Required only for the'
         'photontorch model.'
     )
-    parser.add_argument(
-        '--mmi_imbalances', type=bool, default=False, required=False,
-        help='imbalances of the mmi s within the models.'
-        'If True, make sure to create a mmi_imbalances.npy file'
-    )
-    parser.add_argument(
-        '--mmi_i_losses', type=bool, default=False, required=False,
-        help='Insertion losses of the mmi s within the models.'
-        'If True, make sure to create a mmi_i_losses.npy file.'
-    )
+    parser.add_argument('--mmi_imbalances',
+                        action=argparse.BooleanOptionalAction,
+                        help='imbalances of the mmi s within the models.'
+                        'If True, make sure to create a mmi_imbalances.npy file'
+                        )
+
+    parser.add_argument('--mmi_i_losses',
+                        action=argparse.BooleanOptionalAction,
+                        help='Insertion losses of the mmi s within the models.'
+                        'If True, make sure to create a mmi_i_losses.npy file.'
+                        )
     args = parser.parse_args()
 
     # Prepare the Data Set
@@ -118,13 +120,15 @@ if __name__ == '__main__':
     # Initialize the model
     # Check if the model include losses and imbalances
     # FIX: Check why True is not working
-
-    if args.mmi_imbalances is False:
-        mmi_imbalances = torch.tensor(np.load('mmi_imbalances.npy'))
+ 
+    if args.mmi_imbalances:
+        print("[*] Loading MMI imbalances")
+        mmi_imbalances = torch.tensor(np.load('mmi_imbalances.npy'), dtype=torch.float32)
     else:
+        print("[*] None Loading MMI imbalances")
         mmi_imbalances = None
 
-    if args.mmi_i_losses is False:
+    if args.mmi_i_losses:
         mmi_i_losses = torch.tensor(np.load('mmi_i_losses.npy'))
     else:
         mmi_i_losses = None

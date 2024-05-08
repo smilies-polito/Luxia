@@ -37,6 +37,21 @@ class FldzhyanBlock(nn.Module):
         y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
         return y_complex
 
+    def getSMatrix(self):
+        s_mmi_mats = self._mmi.getSMatrix()
+        s_mmi_diag_mat = torch.block_diag(*s_mmi_mats)
+
+        h_phases = self._heater.getPhases()
+        v_ones = torch.ones_like(h_phases)
+        # Stack the tensors along a new dimension
+        h_stack_phases = torch.stack((h_phases, v_ones), dim=1)
+        # Reshape the stacked tensor to flatten it
+        h_vec_phases = h_stack_phases.view(-1)
+        h_mat_diag = torch.diag(h_vec_phases)
+
+        s_block_matrix = torch.matmul(h_mat_diag, s_mmi_diag_mat)
+        return s_block_matrix
+
 
 class FldzhyanLayer(nn.Module):
     """
@@ -77,6 +92,7 @@ class FldzhyanLayer(nn.Module):
         mmi_i_losses: Tensor of all the losses of the mmis of the block
         mmi_imbalances: Tensor with imbalances of the mmis of the block
     """
+
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
                  mmi_i_losses: torch.Tensor = None,
@@ -144,8 +160,68 @@ class FldzhyanLayer(nn.Module):
                 y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
         return y_complex
 
+    def getSMatrix(self):
+        if self._is_even_input is True:
+            if self._is_even_layer is True:
+                s_matrix = self._ph_blocks.getSMatrix()
+            else:
+                s_matrix = self._ph_blocks.getSMatrix()
+                ones = torch.ones(1)
+                s_matrix = torch.block_diag(ones, s_matrix, ones)
+        else:
+            if self._is_even_layer is True:
+                s_matrix = self._ph_blocks.getSMatrix()
+                ones = torch.ones(1)
+                s_matrix = torch.block_diag(s_matrix, ones)
+            else:
+                s_matrix = self._ph_blocks.getSMatrix()
+                ones = torch.ones(1)
+                s_matrix = torch.block_diag(ones, s_matrix)
+        return s_matrix
+
 
 class FldzhyanNetwork(nn.Module):
+    """ Create the photonic network of the Fldzhyan architecture
+
+        Fig. 1 Even number of inputs (n_inputs = 6) and n_layers = 8
+
+        |---------------------------- N = 8 -------------------------------|
+        A -[w]-- ----------[w]-- ----------[w]-- ----------[w]-- -----------
+                X               X               X               X
+        B ------ --[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ---
+                        X               X               X               X
+        A -[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ------- ---
+                X               X               X               X
+        B ------ --[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ---
+                        X               X               X               X
+        A -[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ------- ---
+                X               X               X               X
+        B ------ --------------- --------------- --------------- -----------
+
+        Fig. 2 Odd number of inputs (n_inputs = 7) and n_layers = 8
+
+        |---------------------------- N = 8 -------------------------------|
+        A -[w]-- ----------[w]-- ----------[w]-- ----------[w]-- -----------
+                X               X               X               x
+        B ------ --[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ---
+                        X               X               X               X
+        A -[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ------- ---
+                X               X               X               X
+        B ------ --[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ---
+                        X               X               X               X
+        A -[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ------- ---
+                X               X               X               X
+        B ------ --[w]-- ------- --[w]-- ------- --[w]-- ------- --[w]-- ---
+                        X               X               X               x
+        A ------------------------------------------------------------------
+
+        Args:
+            n_layers: number of layers of the photonic network
+            n_inputs: number of inputs of the photonic network
+            mmi_i_losses: Tensor of all the losses of the mmis in the network
+            mmi_imbalances: Tensor with imbalances of the mmis in the network
+    """
+
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
@@ -181,6 +257,15 @@ class FldzhyanNetwork(nn.Module):
         for layer in self._ph_layers:
             x_complex = layer(x_complex)
         return x_complex
+
+    def get_SMatrix(self):
+        s_matrix = None
+        for layer in self._ph_layers:
+            if s_matrix is None:
+                s_matrix = layer.getSMatrix()
+            else:
+                s_matrix = torch.matmul(s_matrix, layer.getSMatrix())
+        return s_matrix
 
 
 class FldzhyanModel(nn.Module):
@@ -245,10 +330,10 @@ class FldzhyanModel(nn.Module):
         # network
         x_size = x.shape[-1]
         if x_size > self._n_inputs:
-            print(
-                "The number of features exceeds the capacity of the photonic"
-                f"network. The maximum allowed number is : {self._n_inputs}")
-            exit()
+            raise ValueError(
+                f'The number of features exceeds the capacity of the photonic'
+                f'network. The maximum allowed number is: {self._n_inputs}'
+            )
 
         # Resize the input data if the number of features is less than the
         # number of inputs of the photnic network

@@ -254,10 +254,10 @@ class ClementsModel(nn.Module):
         # network
         x_size = x.shape[-1]
         if x_size > self._n_inputs:
-            print(
-                "The number of features exceeds the capacity of the photonic"
-                f"network. The maximum allowed number is : {self._n_inputs}")
-            exit()
+            raise ValueError(
+                f'The number of features exceeds the capacity of the photonic'
+                f'network. The maximum allowed number is: {self._n_inputs}'
+            )
 
         # Resize the input data if the number of features is less than the
         # number of inputs of the photnic network

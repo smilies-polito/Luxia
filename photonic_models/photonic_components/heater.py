@@ -14,3 +14,7 @@ class Heater(nn.Module):
     def forward(self, waveInput):
         waveOutput = waveInput * torch.exp(1.j*self.phase_shift)
         return waveOutput
+
+    def getPhases(self):
+        weights = torch.exp(1.j*self.phase_shift)
+        return weights
