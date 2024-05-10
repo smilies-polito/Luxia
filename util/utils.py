@@ -30,6 +30,9 @@ def load_dataset(
     elif name == 'digits':
         from datasets.sklearn_datasets import fetch_digits
         return fetch_digits()
+    elif name == 'olivetti':
+        from datasets.sklearn_datasets import fetch_olivetti
+        return fetch_olivetti()
     else:
         raise ValueError('Unknown dataset: {}'.format(name))
 
