@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from .beamsplitters.mmi import Mmi
 from .heater import Heater
+from ..util.util_functions import diag_matrix_alternating_tensors
 
 
 # Select GPU if available, else fall back to CPU
@@ -40,15 +41,15 @@ class MziDual(nn.Module):
             imbalance_0 = mmi_imbalances[0]
             imbalance_1 = mmi_imbalances[1]
 
-        self.mmi_0 = Mmi(n_mmis=n_mzi,
-                         i_loss=i_loss_0,
-                         imbalance=imbalance_0)
-        # Double of waveguides
-        self.heater_0 = Heater(n_heaters=n_mzi)
-        self.heater_1 = Heater(n_heaters=n_mzi)
-        self.mmi_1 = Mmi(n_mmis=n_mzi,
-                         i_loss=i_loss_1,
-                         imbalance=imbalance_1)
+        self._mmi_0 = Mmi(n_mmis=n_mzi,
+                          i_loss=i_loss_0,
+                          imbalance=imbalance_0)
+        # Double of heaters
+        self._heater_0 = Heater(n_heaters=n_mzi)
+        self._heater_1 = Heater(n_heaters=n_mzi)
+        self._mmi_1 = Mmi(n_mmis=n_mzi,
+                          i_loss=i_loss_1,
+                          imbalance=imbalance_1)
 
     def forward(self, portA, portB):
         """
@@ -59,8 +60,27 @@ class MziDual(nn.Module):
 
         Returns:
         """
-        wave_0, wave_1 = self.mmi_0(portA, portB)
-        outPs_0 = self.heater_0(wave_0)
-        outPs_1 = self.heater_1(wave_1)
-        y_0, y_1 = self.mmi_1(outPs_0, outPs_1)
+        wave_0, wave_1 = self._mmi_0(portA, portB)
+        outPs_0 = self._heater_0(wave_0)
+        outPs_1 = self._heater_1(wave_1)
+        y_0, y_1 = self._mmi_1(outPs_0, outPs_1)
         return y_0, y_1
+
+    def get_tf_matrix(self):
+        mmi_0_tf_matrices = self._mmi_0.get_tf_matrix()
+        mmi_1_tf_matrices = self._mmi_1.get_tf_matrix()
+        mmi_0_diag_matrix = torch.block_diag(*mmi_0_tf_matrices)
+        mmi_1_diag_matrix = torch.block_diag(*mmi_1_tf_matrices)
+
+        heater_phases_0 = self._heater_0.getPhases()
+        heater_phases_1 = self._heater_1.getPhases()
+
+        heater_diag_matrix = diag_matrix_alternating_tensors(
+            heater_phases_0, heater_phases_1
+        )
+
+        tf_matrix = torch.linalg.multi_dot(
+            (mmi_0_diag_matrix, heater_diag_matrix, mmi_1_diag_matrix)
+        )
+
+        return tf_matrix

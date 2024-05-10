@@ -3,6 +3,8 @@ from torch import nn
 from .photonic_components.heater import Heater
 from .photonic_components.beamsplitters.mmi import Mmi
 from .photonic_components.photodetector import Photodetector
+from .util.util_functions import diag_matrix_alternating_tensors
+from .util.util_functions import check_and_resize_input
 
 
 class FldzhyanBellEvenBlock(nn.Module):
@@ -35,6 +37,12 @@ class FldzhyanBellEvenBlock(nn.Module):
         # return the elements in an alternative form
         y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
         return y_complex
+
+    def get_tf_matrix(self):
+        mmi_tf_matrices = self._mmi.get_tf_matrix()
+        # Create a block diagonal matrix with the mmi tfunction matrices
+        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
+        return mmi_diag_matrix
 
 
 class FldzhyanBellOddBlock(nn.Module):
@@ -72,6 +80,19 @@ class FldzhyanBellOddBlock(nn.Module):
         y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
         return y_complex
 
+    def get_tf_matrix(self):
+        mmi_tf_matrices = self._mmi.get_tf_matrix()
+        # Create a block diagonal matrix with the mmi tfunction matrices
+        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
+
+        heater_phases_0 = self._heater_0.getPhases()
+        heater_phases_1 = self._heater_1.getPhases()
+        heater_diag_matrix = diag_matrix_alternating_tensors(
+            heater_phases_0, heater_phases_1
+        )
+        tf_matrix = torch.matmul(heater_diag_matrix, mmi_diag_matrix)
+        return tf_matrix
+
 
 class FldzhyanBellLayer(nn.Module):
     """
@@ -79,7 +100,7 @@ class FldzhyanBellLayer(nn.Module):
 
       Fig. 1 Even number of Inputs
           a) Even Layer:      b) Odd Layer:
-        A ------ ---C       A _[w]_______ C
+        A ------ ---C       A -[w]--------C
                 X
         B ------ ---D       B -[w]-- -----C
                                     X
@@ -95,7 +116,7 @@ class FldzhyanBellLayer(nn.Module):
 
       Fig. 2 Odd f Inputs
           a) Even Layer:    b) Odd Layer:
-        A ------ ---C       A _[w]_______ C
+        A ------ ---C       A -[w]--------C
                 X
         B ------ ---D       B -[w]-- -----C
                                     X
@@ -107,7 +128,7 @@ class FldzhyanBellLayer(nn.Module):
                 X
         B ------ ---D       B -[w]-- -----C
                                     X
-        A _________ C       A -[w]-- -----D
+        A-----------C       A -[w]-- -----D
 
     ============ Layer of Heaters ============
       Fig. 3 Start and last layer
@@ -219,17 +240,40 @@ class FldzhyanBellLayer(nn.Module):
                 y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
         return y_complex
 
+    def get_tf_matrix(self):
+        if self._is_even_input is True:
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+            else:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                top_heater_phase = self._heaters[0].getPhases()
+                bottom_heater_phase = self._heaters[1].getPhases()
+                tf_matrix = torch.block_diag(
+                    top_heater_phase, tf_matrix, bottom_heater_phase
+                )
+        else:
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                one = torch.ones(1)
+                tf_matrix = torch.block_diag(tf_matrix, one)
+            else:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                top_heater_phase = self._heaters[0].getPhases()
+                tf_matrix = torch.block_diag(top_heater_phase, tf_matrix)
+        return tf_matrix
 
-class FldzhyanBellNetwork(nn.Module):
+
+class FldzhyanBellArchitecture(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
                  ):
-        super(FldzhyanBellNetwork, self).__init__()
+        super(FldzhyanBellArchitecture, self).__init__()
         self._n_layers = n_layers
         self._ph_layers = nn.ModuleList()
         self._ph_first_layer = Heater(n_heaters=n_inputs)
         self._ph_last_layer = Heater(n_heaters=n_inputs)
+        self._matrices = nn.ParameterList()
 
         for i in range(n_layers):
             i_losses = None
@@ -254,6 +298,8 @@ class FldzhyanBellNetwork(nn.Module):
                     mmi_imbalances=imbalance
                     ))
 
+            self._matrices.append(self._ph_layers[i].get_tf_matrix())
+
     def forward(self, x_complex):
         x_complex = self._ph_first_layer(x_complex)
         for layer in self._ph_layers:
@@ -261,6 +307,21 @@ class FldzhyanBellNetwork(nn.Module):
 
         x_complex = self._ph_last_layer(x_complex)
         return x_complex
+
+    def get_tf_matrix(self):
+        first_layer_phases = self._ph_first_layer.getPhases()
+        first_layer_tf_matrix = torch.diag(first_layer_phases)
+        last_layer_phases = self._ph_last_layer.getPhases()
+        last_layer_tf_matrix = torch.diag(last_layer_phases)
+        tf_matrix_mid_layers = torch.linalg.multi_dot(
+            tuple(
+                [self._matrices[i] for i in range(len(self._matrices))]
+            )
+        )
+        tf_matrix = torch.linalg.multi_dot(
+            (first_layer_tf_matrix, tf_matrix_mid_layers, last_layer_tf_matrix)
+        )
+        return tf_matrix
 
 
 class FldzhyanBellModel(nn.Module):
@@ -292,7 +353,7 @@ class FldzhyanBellModel(nn.Module):
             if mmi_imbalances is not None:
                 imbalance = mmi_imbalances[i]
 
-            self._ph_networks.append(FldzhyanBellNetwork(
+            self._ph_networks.append(FldzhyanBellArchitecture(
                 n_layers=self._n_layers,
                 n_inputs=self._n_inputs,
                 mmi_i_losses=i_losses,
@@ -305,10 +366,11 @@ class FldzhyanBellModel(nn.Module):
             self._biases.append(nn.Parameter(
                 torch.rand(self._n_inputs), requires_grad=True))
 
-    def forward(self, x):
+        self.forward = self.matmulForward
 
+    def fastForward(self, x):
         # Add features with zeros if the architecture N > inputs
-        x_reals = self._resizeX(x)
+        x_reals = check_and_resize_input(x, self._n_inputs)
 
         for i_ph in range(self._n_networks):
             x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
@@ -320,27 +382,20 @@ class FldzhyanBellModel(nn.Module):
         y = x_reals[:, lower_limit:upper_limit]
         return y
 
-    def _resizeX(self, x):
-        # Check if the number of features exceeds the capacity of the photonic
-        # network
-        x_size = x.shape[-1]
-        if x_size > self._n_inputs:
-            raise ValueError(
-                f'The number of features exceeds the capacity of the photonic'
-                f'network. The maximum allowed number is: {self._n_inputs}'
-            )
+    def matmulForward(self, x):
+        # Add features with zeros if the architecture N > inputs
+        x_reals = check_and_resize_input(x, self._n_inputs)
 
-        # Resize the input data if the number of features is less than the
-        # number of inputs of the photnic network
-        if x_size < self._n_inputs:
-            x_resized = torch.zeros(
-                (x.shape[0], self._n_inputs), dtype=x.dtype, device=x.device)
+        for i_ph in range(self._n_networks):
+            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
+            tf_matrix = self._ph_networks[i_ph].get_tf_matrix()
+            y_complex = torch.matmul(x_complex, tf_matrix)
+            d = self._photodetectors(y_complex)
+            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
 
-            start_limit = (self._n_inputs - x_size) // 2
-            end_limit = start_limit + x_size
-            x_resized[..., start_limit:end_limit] = x
-            return x_resized
-        return x
+        lower_limit, upper_limit = self._getLimits()
+        y = x_reals[:, lower_limit:upper_limit]
+        return y
 
     def _getLimits(self):
         lower_limit = self._n_inputs//2 - (self._n_classes//2)

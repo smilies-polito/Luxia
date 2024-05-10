@@ -59,3 +59,19 @@ class Beamsplitter(nn.Module):
         y_1 = self._pCoeff2 * portA + self._pCoeff3 * portB
 
         return y_0, y_1
+
+    def get_tf_matrix(self):
+        if self.i_loss is None and self.imbalance is None:
+            tf_matrix = [torch.stack([
+                torch.tensor([self._pCoeff0, self._pCoeff1], dtype=torch.complex64),
+                torch.tensor([self._pCoeff2, self._pCoeff3], dtype=torch.complex64)
+            ])]*self.n_mmis
+        else:
+            tf_matrix = torch.stack(
+                [
+                    torch.stack([self._pCoeff0, self._pCoeff1], dim=-1),
+                    torch.stack([self._pCoeff2, self._pCoeff3], dim=-1)
+                ],
+                dim=-1
+            )
+        return tf_matrix

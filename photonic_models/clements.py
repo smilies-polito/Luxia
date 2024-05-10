@@ -3,6 +3,8 @@ from torch import nn
 from .photonic_components.heater import Heater
 from .photonic_components.mzi import Mzi
 from .photonic_components.photodetector import Photodetector
+from .util.util_functions import diag_matrix_alternating_tensor_with_ones
+from .util.util_functions import check_and_resize_input
 
 
 class ClementsBlock(nn.Module):
@@ -40,6 +42,18 @@ class ClementsBlock(nn.Module):
         # return the elements in an alternative form
         y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
         return y_complex
+
+    def get_tf_matrix(self):
+        # Get the transfer function matrix of the mzi
+        mzi_tf_matrix = self._mzi.get_tf_matrix()
+        # Get the phases of the heaters
+        heater_phases = self._heater.getPhases()
+        # Create a diagonal matrix with the phases of the heaters
+        heater_diag_matrix = diag_matrix_alternating_tensor_with_ones(
+            heater_phases)
+        # Multiply the heater diagonal with the mzi transfer function matrix
+        tf_matrix = torch.matmul(heater_diag_matrix, mzi_tf_matrix)
+        return tf_matrix
 
 
 class ClementsLayer(nn.Module):
@@ -101,7 +115,6 @@ class ClementsLayer(nn.Module):
             if self._is_even_layer is False:
                 self._n_blocks = self._n_blocks - 1
 
-
         self._ph_blocks = ClementsBlock(
             n_blocks=self._n_blocks,
             mmi_i_losses=mmi_i_losses,
@@ -153,15 +166,35 @@ class ClementsLayer(nn.Module):
                 y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
         return y_complex
 
+    def get_tf_matrix(self):
+        if self._is_even_input is True:
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+            else:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                ones = torch.ones(1)
+                tf_matrix = torch.block_diag(ones, tf_matrix, ones)
+        else:
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                ones = torch.ones(1)
+                tf_matrix = torch.block_diag(tf_matrix, ones)
+            else:
+                tf_matrix = self._ph_blocks.get_tf_matrix()
+                ones = torch.ones(1)
+                tf_matrix = torch.block_diag(ones, tf_matrix)
+        return tf_matrix
 
-class ClementsNetwork(nn.Module):
+
+class ClementsArchitecture(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
                  ):
-        super(ClementsNetwork, self).__init__()
+        super(ClementsArchitecture, self).__init__()
 
         self._ph_layers = nn.ModuleList()
+        self._matrices = nn.ParameterList()
 
         for i in range(n_layers):
             i_losses = None
@@ -186,10 +219,26 @@ class ClementsNetwork(nn.Module):
                     mmi_imbalances=imbalance
                     ))
 
+            self._matrices.append(self._ph_layers[i].get_tf_matrix())
+
     def forward(self, x_complex):
         for layer in self._ph_layers:
             x_complex = layer(x_complex)
         return x_complex
+
+    def get_tf_matrix(self):
+        # tf_matrix = None
+        # for layer in self._ph_layers:
+        #     if tf_matrix is None:
+        #         tf_matrix = layer.getTFMatrix()
+        #     else:
+        #         tf_matrix = torch.matmul(tf_matrix, layer.getTFMatrix())
+        tf_matrix = torch.linalg.multi_dot(
+            tuple(
+                [self._matrices[i] for i in range(len(self._matrices))]
+            )
+        )
+        return tf_matrix
 
 
 class ClementsModel(nn.Module):
@@ -221,7 +270,7 @@ class ClementsModel(nn.Module):
             if mmi_imbalances is not None:
                 imbalance = mmi_imbalances[i]
 
-            self._ph_networks.append(ClementsNetwork(
+            self._ph_networks.append(ClementsArchitecture(
                 n_layers=self._n_layers,
                 n_inputs=self._n_inputs,
                 mmi_i_losses=i_losses,
@@ -234,10 +283,11 @@ class ClementsModel(nn.Module):
             self._biases.append(nn.Parameter(
                 torch.rand(self._n_inputs), requires_grad=True))
 
-    def forward(self, x):
+            self.forward = self.matmulForward
 
+    def fastForward(self, x):
         # Add features with zeros if the architecture N > inputs
-        x_reals = self._resizeX(x)
+        x_reals = check_and_resize_input(x, self._n_inputs)
 
         for i_ph in range(self._n_networks):
             x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
@@ -249,27 +299,20 @@ class ClementsModel(nn.Module):
         y = x_reals[:, lower_limit:upper_limit]
         return y
 
-    def _resizeX(self, x):
-        # Check if the number of features exceeds the capacity of the photonic
-        # network
-        x_size = x.shape[-1]
-        if x_size > self._n_inputs:
-            raise ValueError(
-                f'The number of features exceeds the capacity of the photonic'
-                f'network. The maximum allowed number is: {self._n_inputs}'
-            )
+    def matmulForward(self, x):
+        # Add features with zeros if the architecture N > inputs
+        x_reals = check_and_resize_input(x, self._n_inputs)
 
-        # Resize the input data if the number of features is less than the
-        # number of inputs of the photnic network
-        if x_size < self._n_inputs:
-            x_resized = torch.zeros(
-                (x.shape[0], self._n_inputs), dtype=x.dtype, device=x.device)
+        for i_ph in range(self._n_networks):
+            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
+            tf_matrix = self._ph_networks[i_ph].get_tf_matrix()
+            y_complex = torch.matmul(x_complex, tf_matrix)
+            d = self._photodetectors(y_complex)
+            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
 
-            start_limit = (self._n_inputs - x_size) // 2
-            end_limit = start_limit + x_size
-            x_resized[..., start_limit:end_limit] = x
-            return x_resized
-        return x
+        lower_limit, upper_limit = self._getLimits()
+        y = x_reals[:, lower_limit:upper_limit]
+        return y
 
     def _getLimits(self):
         lower_limit = self._n_inputs//2 - (self._n_classes//2)

@@ -12,6 +12,7 @@ def fetch_mnist():
     labels_train = data_train.targets
     data_train = data_train.data
     # Reshape the tensor to a single vector
+    # 28x28 = 784
     reshaped_tensor = data_train.view(-1, 28 * 28)
     # Normalize the values to be between 0 and 1
     data_train = reshaped_tensor.float() / 255.0

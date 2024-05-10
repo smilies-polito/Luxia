@@ -3,6 +3,8 @@ from torch import nn
 from .photonic_components.heater import Heater
 from .photonic_components.beamsplitters.mmi import Mmi
 from .photonic_components.photodetector import Photodetector
+from .util.util_functions import diag_matrix_alternating_tensor_with_ones
+from .util.util_functions import check_and_resize_input
 
 
 class FldzhyanBlock(nn.Module):
@@ -54,27 +56,25 @@ class FldzhyanBlock(nn.Module):
 
         return y_complex
 
-    def getSMatrix(self):
-        s_mmi_mats = self._mmi.getSMatrix()
-        s_mmi_diag_mat = torch.block_diag(*s_mmi_mats)
-
-        h_phases = self._heater.getPhases()
-        v_ones = torch.ones_like(h_phases)
-        # Stack the tensors along a new dimension
-        h_stack_phases = torch.stack((h_phases, v_ones), dim=1)
-        # Reshape the stacked tensor to flatten it
-        h_vec_phases = h_stack_phases.view(-1)
-        h_mat_diag = torch.diag(h_vec_phases)
-
-        s_block_matrix = torch.matmul(h_mat_diag, s_mmi_diag_mat)
-        return s_block_matrix
+    def getTFMatrix(self):
+        # Get the transfer function matrix of the mmis
+        mmi_tf_matrices = self._mmi.get_tf_matrix()
+        # Create a block diagonal matrix with the mmi tfunction matrices
+        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
+        # Get the phases of the heaters
+        heater_phases = self._heater.getPhases()
+        # Create a diagonal matrix with the phases of the heaters
+        heater_diag_matrix = diag_matrix_alternating_tensor_with_ones(heater_phases)
+        # Create the transfer function matrix of the block
+        tf_matrix = torch.matmul(heater_diag_matrix, mmi_diag_matrix)
+        return tf_matrix
 
 
 class FldzhyanLayer(nn.Module):
     """
       Fig. 1 Even number of Inputs
           a) Even Layer:      b) Odd Layer:
-        A -[w]-- ---C       A ___________ C
+        A -[w]-- ---C       A ------------C
                 X
         B ------ ---D       B -[w]-- -----C
                                     X
@@ -84,7 +84,7 @@ class FldzhyanLayer(nn.Module):
                                     X
         A -[w]-- ---C       A ------ -----D
                 X
-        B ------ ---D       B ___________ C
+        B ------ ---D       B ------------C
 
         ==========================================
         Fig. 2 Odd f Inputs
@@ -101,7 +101,7 @@ class FldzhyanLayer(nn.Module):
                 X
         B ------ ---D       B -[w]-- -----C
                                     X
-        A _________ C       A ------ -----D
+        A ----------C       A ------ -----D
     Args:
         n_inputs: n inputs of the layer, from here it can be said
         if it is an even or and odd layer
@@ -183,28 +183,28 @@ class FldzhyanLayer(nn.Module):
                 y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
         return y_complex
 
-    def getSMatrix(self):
-        if self._is_even_input:
-            if self._is_even_layer:
-                s_matrix = self._ph_blocks.getSMatrix()
+    def getTFMatrix(self):
+        if self._is_even_input is True:
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.getTFMatrix()
             else:
-                s_matrix = self._ph_blocks.getSMatrix()
+                tf_matrix = self._ph_blocks.getTFMatrix()
                 ones = torch.ones(1)
-                s_matrix = torch.block_diag(ones, s_matrix, ones)
+                tf_matrix = torch.block_diag(ones, tf_matrix, ones)
         else:
-            if self._is_even_layer:
-                s_matrix = self._ph_blocks.getSMatrix()
+            if self._is_even_layer is True:
+                tf_matrix = self._ph_blocks.getTFMatrix()
                 ones = torch.ones(1)
-                s_matrix = torch.block_diag(s_matrix, ones)
+                tf_matrix = torch.block_diag(tf_matrix, ones)
             else:
-                s_matrix = self._ph_blocks.getSMatrix()
+                tf_matrix = self._ph_blocks.getTFMatrix()
                 ones = torch.ones(1)
-                s_matrix = torch.block_diag(ones, s_matrix)
-        return s_matrix
+                tf_matrix = torch.block_diag(ones, tf_matrix)
+        return tf_matrix
 
 
-class FldzhyanNetwork(nn.Module):
-    """ Create the photonic network of the Fldzhyan architecture
+class FldzhyanArchitecture(nn.Module):
+    """ Create the photonic architecture of the Fldzhyan
 
         Fig. 1 Even number of inputs (n_inputs = 6) and n_layers = 8
 
@@ -239,17 +239,19 @@ class FldzhyanNetwork(nn.Module):
         A ------------------------------------------------------------------
 
         Args:
-            n_layers: number of layers of the photonic network
-            n_inputs: number of inputs of the photonic network
-            mmi_i_losses: Tensor of all the losses of the mmis in the network
-            mmi_imbalances: Tensor with imbalances of the mmis in the network
+            n_layers: number of layers of the photonic architecture
+            n_inputs: number of inputs of the photonic architecture
+            mmi_i_losses: Tensor of all the losses of the mmis in the
+            architecture
+            mmi_imbalances: Tensor with imbalances of the mmis in the
+            architecture
     """
 
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
                  ):
-        super(FldzhyanNetwork, self).__init__()
+        super(FldzhyanArchitecture, self).__init__()
 
         self._ph_layers = []
 
@@ -266,6 +268,8 @@ class FldzhyanNetwork(nn.Module):
 
         self.PhLayers = torch.nn.Sequential(*self._ph_layers)
 
+        self._matrices = [ph_l.getTFMatrix() for ph_l in self._ph_layers]
+
     def forward(self, x_complex):
         """
         
@@ -274,14 +278,19 @@ class FldzhyanNetwork(nn.Module):
         """
         return self.PhLayers(x_complex)
 
-    def get_SMatrix(self):
-        s_matrix = None
-        for layer in self._ph_layers:
-            if s_matrix is None:
-                s_matrix = layer.getSMatrix()
-            else:
-                s_matrix = torch.matmul(s_matrix, layer.getSMatrix())
-        return s_matrix
+    def get_tf_matrix(self):
+        # tf_matrix = None
+        # for layer in self._ph_layers:
+        #     if tf_matrix is None:
+        #         tf_matrix = layer.getTFMatrix()
+        #     else:
+        #         tf_matrix = torch.matmul(tf_matrix, layer.getTFMatrix())
+        tf_matrix = torch.linalg.multi_dot(
+            tuple(
+                [self._matrices[i] for i in range(len(self._matrices))]
+            )
+        )
+        return tf_matrix
 
 
 class RealToComplex(nn.Module):
@@ -340,7 +349,7 @@ class FldzhyanModel(nn.Module):
 
             _ph_model.append(RealToComplex())
 
-            _ph_model.append(FldzhyanNetwork(
+            _ph_model.append(FldzhyanArchitecture(
                 n_layers=self._n_layers,
                 n_inputs=self._n_inputs,
                 mmi_i_losses=i_losses,
@@ -355,8 +364,9 @@ class FldzhyanModel(nn.Module):
         
         self.PhModel = torch.nn.Sequential(*_ph_model)
 
+        self.forward = self.matmulForward
 
-    def forward(self, x):
+    def fastForward(self, x):
         """
         
         Args:
@@ -368,3 +378,27 @@ class FldzhyanModel(nn.Module):
 
         return y
 
+    def matmulForward(self, x):
+        # Add features with zeros if the architecture N > inputs
+        x_reals = check_and_resize_input(x, self._n_inputs)
+
+        for i_ph in range(self._n_networks):
+            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
+
+            tf_matrix = self._ph_networks[i_ph].get_tf_matrix()
+            y_complex = torch.matmul(x_complex, tf_matrix)
+            d = self._photodetectors(y_complex)
+            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
+
+        lower_limit, upper_limit = self._getLimits()
+        y = x_reals[:, lower_limit:upper_limit]
+        return y
+
+    def _getLimits(self):
+        lower_limit = self._n_inputs//2 - (self._n_classes//2)
+        upper_limit = self._n_inputs//2 + self._n_classes//2
+
+        if self._n_classes % 2 != 0:
+            upper_limit = upper_limit + 1
+
+        return lower_limit, upper_limit

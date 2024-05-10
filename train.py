@@ -126,8 +126,6 @@ if __name__ == '__main__':
 
     # Initialize the model
     # Check if the model include losses and imbalances
-    # FIX: Check why True is not working
- 
     if args.mmi_imbalances:
         print("[*] Loading MMI imbalances")
         mmi_imbalances = torch.tensor(np.load('mmi_imbalances.npy'), dtype=torch.float32)
