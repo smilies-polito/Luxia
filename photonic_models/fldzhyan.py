@@ -30,11 +30,28 @@ class FldzhyanBlock(nn.Module):
                         imbalance=mmi_imbalances)
 
     def forward(self, portsA, portsB):
-        outPs = self._heater(portsA)
-        y_0, y_1 = self._mmi(outPs, portsB)
+        """
+        FIX:
+        Note: n_A_inputs and n_B_inputs can change based on the fact that
+        the number of the current layer or block is even or odd.
+        However, n_A_inputs := n_B_inputs := n_blocks always and
+        n_blocks ~= n_inputs/2
 
-        # return the elements in an alternative form
-        y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
+        Args:
+            portsA: all "A" inputs, sampled every two (batch_size, n_A_inputs)
+            portsB: all "B" inputs, sampled every two (batch_size, n_B_inputs)
+
+        Return:
+            y_complex: (batch_size, 2*n_blocks)
+        """
+        outPs = self._heater(portsA) # (batch_size, n_blocks)
+        y_0, y_1 = self._mmi(outPs, portsB) # (batch_size, n_blocks), (batch_size, n_blocks)
+
+        y_complex = torch.stack([y_0, y_1], axis=2) # (batch_size, n_blocks, 2)
+
+        # return the elements by alternating them
+        y_complex = y_complex.view(y_0.shape[0], -1) # (batch_size, 2*n_blocks)
+
         return y_complex
 
     def getSMatrix(self):
@@ -102,23 +119,29 @@ class FldzhyanLayer(nn.Module):
         self._n_inputs = n_inputs
         self._is_even_layer = is_even_layer
         self._n_blocks = n_inputs // 2
-        self._is_even_input = False
+        self._is_even_input = (self._n_inputs % 2 == 0)
 
-        if self._n_inputs % 2 == 0:
-            self._is_even_input = True
-            if self._is_even_layer is False:
-                self._n_blocks = self._n_blocks - 1
+        if self._is_even_input and not self._is_even_layer:
+            self._n_blocks = self._n_blocks - 1
 
         self._ph_blocks = FldzhyanBlock(
             n_blocks=self._n_blocks,
             mmi_i_losses=mmi_i_losses,
             mmi_imbalances=mmi_imbalances
-            )
+        )
 
     def forward(self, x_complex):
+        """
+        
+        Args:
+            x_complex: input batch in complex numbers (batch_size, n_inputs)
+        
+        Return:
+            y_complex: output batch (batch_size, n_inputs)
+        """
         y_complex = torch.zeros_like(x_complex)
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
+        if self._is_even_input:
+            if self._is_even_layer:
                 # figure 1.a
                 # Create a tensor with all As (x_complex_0)
                 x_complex_0 = x_complex[:, ::2]
@@ -138,7 +161,7 @@ class FldzhyanLayer(nn.Module):
                 x_complex_1 = x_complex[:, 1::2]
                 y_complex[:, 1:-1] = self._ph_blocks(x_complex_0, x_complex_1)
         else:
-            if self._is_even_layer is True:
+            if self._is_even_layer:
                 # figure 2.a
                 # Pass to the output all the last elements
                 y_complex[:, -1] = x_complex[:, - 1]
@@ -161,15 +184,15 @@ class FldzhyanLayer(nn.Module):
         return y_complex
 
     def getSMatrix(self):
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
+        if self._is_even_input:
+            if self._is_even_layer:
                 s_matrix = self._ph_blocks.getSMatrix()
             else:
                 s_matrix = self._ph_blocks.getSMatrix()
                 ones = torch.ones(1)
                 s_matrix = torch.block_diag(ones, s_matrix, ones)
         else:
-            if self._is_even_layer is True:
+            if self._is_even_layer:
                 s_matrix = self._ph_blocks.getSMatrix()
                 ones = torch.ones(1)
                 s_matrix = torch.block_diag(s_matrix, ones)
@@ -228,35 +251,28 @@ class FldzhyanNetwork(nn.Module):
                  ):
         super(FldzhyanNetwork, self).__init__()
 
-        self._ph_layers = nn.ModuleList()
+        self._ph_layers = []
 
         for i in range(n_layers):
-            i_losses = None
-            imbalance = None
-            if mmi_i_losses is not None:
-                i_losses = mmi_i_losses[i]
-            if mmi_imbalances is not None:
-                imbalance = mmi_imbalances[i]
+            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
+            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
-            if i % 2 == 0:
-                self._ph_layers.append(FldzhyanLayer(
-                    n_inputs=n_inputs,
-                    is_even_layer=True,
-                    mmi_i_losses=i_losses,
-                    mmi_imbalances=imbalance
-                    ))
-            else:
-                self._ph_layers.append(FldzhyanLayer(
-                    n_inputs=n_inputs,
-                    is_even_layer=False,
-                    mmi_i_losses=i_losses,
-                    mmi_imbalances=imbalance,
-                    ))
+            self._ph_layers.append(FldzhyanLayer(
+                n_inputs=n_inputs,
+                is_even_layer=(i % 2 == 0),
+                mmi_i_losses=i_losses,
+                mmi_imbalances=imbalance
+            ))
+
+        self.PhLayers = torch.nn.Sequential(*self._ph_layers)
 
     def forward(self, x_complex):
-        for layer in self._ph_layers:
-            x_complex = layer(x_complex)
-        return x_complex
+        """
+        
+        Args:
+            x_complex: input batch in complex numbers (batch_size, n_inputs)
+        """
+        return self.PhLayers(x_complex)
 
     def get_SMatrix(self):
         s_matrix = None
@@ -266,6 +282,31 @@ class FldzhyanNetwork(nn.Module):
             else:
                 s_matrix = torch.matmul(s_matrix, layer.getSMatrix())
         return s_matrix
+
+
+class RealToComplex(nn.Module):
+
+    def __init__(self):
+        super(RealToComplex, self).__init__()
+
+    def forward(self, x_reals):
+        return torch.complex(x_reals, torch.zeros_like(x_reals))
+
+
+class MultiplyBias(nn.Module):
+    def __init__(self, n_inputs):
+        super(MultiplyBias, self).__init__()
+
+        self.mul = nn.Parameter(
+            torch.rand(n_inputs), requires_grad=True
+        )
+
+        self.bias = nn.Parameter(
+            torch.rand(n_inputs), requires_grad=True
+        )
+
+    def forward(self, x):
+        return x * self.mul + self.bias
 
 
 class FldzhyanModel(nn.Module):
@@ -278,80 +319,52 @@ class FldzhyanModel(nn.Module):
                  mmi_imbalances: torch.Tensor = None
                  ):
         super(FldzhyanModel, self).__init__()
+
         self._n_inputs = n_inputs
         self._n_layers = n_layers
         self._n_classes = n_classes
         self._n_networks = n_networks
 
-        self._photodetectors = Photodetector()
+        self.lower_limit = self._n_inputs//2 - (self._n_classes//2)
+        self.upper_limit = self._n_inputs//2 + self._n_classes//2
+        if self._n_classes % 2 != 0:
+            self.upper_limit += 1
 
-        self._ph_networks = nn.ModuleList()
-        self._diag_layer = nn.ParameterList()
-        self._biases = nn.ParameterList()
+        self._photodetector = Photodetector()
+
+        _ph_model = []
 
         for i in range(self._n_networks):
-            i_losses = None
-            imbalance = None
-            if mmi_i_losses is not None:
-                i_losses = mmi_i_losses[i]
-            if mmi_imbalances is not None:
-                imbalance = mmi_imbalances[i]
+            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
+            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
-            self._ph_networks.append(FldzhyanNetwork(
+            _ph_model.append(RealToComplex())
+
+            _ph_model.append(FldzhyanNetwork(
                 n_layers=self._n_layers,
                 n_inputs=self._n_inputs,
                 mmi_i_losses=i_losses,
                 mmi_imbalances=imbalance
             ))
 
-            self._diag_layer.append(nn.Parameter(
-                torch.rand(self._n_inputs), requires_grad=True))
+            # FIX: self._photodetector is always the same module repeated
+            # many times, i.e. SHARED weights
+            _ph_model.append(self._photodetector)
 
-            self._biases.append(nn.Parameter(
-                torch.rand(self._n_inputs), requires_grad=True))
+            _ph_model.append(MultiplyBias(n_inputs))
+        
+        self.PhModel = torch.nn.Sequential(*_ph_model)
+
 
     def forward(self, x):
+        """
+        
+        Args:
+            x: input batch (batch_size, n_inputs)
+        """
+        y_reals = self.PhModel(x)
 
-        # Add features with zeros if the architecture N > inputs
-        x_reals = self._resizeX(x)
+        y = y_reals[:, self.lower_limit:self.upper_limit]
 
-        for i_ph in range(self._n_networks):
-            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
-            y_complex = self._ph_networks[i_ph](x_complex)
-            d = self._photodetectors(y_complex)
-            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
-
-        lower_limit, upper_limit = self._getLimits()
-        y = x_reals[:, lower_limit:upper_limit]
         return y
 
-    def _resizeX(self, x):
-        # Check if the number of features exceeds the capacity of the photonic
-        # network
-        x_size = x.shape[-1]
-        if x_size > self._n_inputs:
-            raise ValueError(
-                f'The number of features exceeds the capacity of the photonic'
-                f'network. The maximum allowed number is: {self._n_inputs}'
-            )
-
-        # Resize the input data if the number of features is less than the
-        # number of inputs of the photnic network
-        if x_size < self._n_inputs:
-            x_resized = torch.zeros(
-                (x.shape[0], self._n_inputs), dtype=x.dtype, device=x.device)
-
-            start_limit = (self._n_inputs - x_size) // 2
-            end_limit = start_limit + x_size
-            x_resized[..., start_limit:end_limit] = x
-            return x_resized
-        return x
-
-    def _getLimits(self):
-        lower_limit = self._n_inputs//2 - (self._n_classes//2)
-        upper_limit = self._n_inputs//2 + self._n_classes//2
-
-        if self._n_classes % 2 != 0:
-            upper_limit = upper_limit + 1
-
-        return lower_limit, upper_limit
