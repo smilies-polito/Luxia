@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from .photonic_components.heater import Heater
 from .photonic_components.beamsplitters.mmi import Mmi
-from .photonic_components.photodetector import Photodetector
 from .util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
@@ -130,7 +129,6 @@ class FldzhyanLayer(nn.Module):
 
     def forward(self, x_complex):
         """
-        
         Args:
             x_complex: input batch in complex numbers (batch_size, n_inputs)
         
@@ -248,33 +246,40 @@ class FldzhyanArchitecture(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
+                 is_fastforward: bool = False
                  ):
         super(FldzhyanArchitecture, self).__init__()
 
-        self._ph_layers = []
+        if is_fastforward:
+            layer_list = []
+        else:
+            self._layer_matrices = nn.ParameterList()
 
         for i in range(n_layers):
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
-            self._ph_layers.append(FldzhyanLayer(
+            layer = FldzhyanLayer(
                 n_inputs=n_inputs,
                 is_even_layer=(i % 2 == 0),
                 mmi_i_losses=i_losses,
                 mmi_imbalances=imbalance
-            ))
+            )
 
-        self.PhLayers = torch.nn.Sequential(*self._ph_layers)
+            if is_fastforward:
+                layer_list.append(layer)
+            else:
+                self._layer_matrices.append(layer.getTFMatrix())
 
-        self._matrices = [ph_l.getTFMatrix() for ph_l in self._ph_layers]
+        if is_fastforward:
+            self._ph_layers = torch.nn.Sequential(*layer_list)
 
     def forward(self, x_complex):
         """
-        
         Args:
             x_complex: input batch in complex numbers (batch_size, n_inputs)
         """
-        return self.PhLayers(x_complex)
+        return self._ph_layers(x_complex)
 
     def get_tf_matrix(self):
         # tf_matrix = None
@@ -285,120 +290,7 @@ class FldzhyanArchitecture(nn.Module):
         #         tf_matrix = torch.matmul(tf_matrix, layer.getTFMatrix())
         tf_matrix = torch.linalg.multi_dot(
             tuple(
-                [self._matrices[i] for i in range(len(self._matrices))]
+                [self._layer_matrices[i] for i in range(len(self._layer_matrices))]
             )
         )
         return tf_matrix
-
-
-class RealToComplex(nn.Module):
-
-    def __init__(self):
-        super(RealToComplex, self).__init__()
-
-    def forward(self, x_reals):
-        return torch.complex(x_reals, torch.zeros_like(x_reals))
-
-
-class ElectronicFunction(nn.Module):
-    def __init__(self, n_inputs):
-        super(ElectronicFunction, self).__init__()
-
-        self.mul = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True
-        )
-
-        self.bias = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True
-        )
-
-    def forward(self, x):
-        return x * self.mul + self.bias
-
-
-class FldzhyanModel(nn.Module):
-    def __init__(self,
-                 n_inputs: int,
-                 n_layers: int,
-                 n_classes: int,
-                 n_networks: int = 2,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
-                 ):
-        super(FldzhyanModel, self).__init__()
-
-        self._n_inputs = n_inputs
-        self._n_layers = n_layers
-        self._n_classes = n_classes
-        self._n_networks = n_networks
-
-        self.lower_limit = self._n_inputs//2 - (self._n_classes//2)
-        self.upper_limit = self._n_inputs//2 + self._n_classes//2
-        if self._n_classes % 2 != 0:
-            self.upper_limit += 1
-
-        self._photodetectors = Photodetector()
-
-        _ph_model = []
-
-        for i in range(self._n_networks):
-            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
-            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
-
-            _ph_model.append(RealToComplex())
-
-            _ph_model.append(FldzhyanArchitecture(
-                n_layers=self._n_layers,
-                n_inputs=self._n_inputs,
-                mmi_i_losses=i_losses,
-                mmi_imbalances=imbalance
-            ))
-
-            _ph_model.append(self._photodetectors)
-
-            _ph_model.append(ElectronicFunction(n_inputs))
-        
-        self.PhModel = torch.nn.Sequential(*_ph_model)
-
-        self.forward = self.matmulForward
-
-    def fastForward(self, x):
-        """
-        
-        Args:
-            x: input batch (batch_size, n_inputs)
-        """
-        y_reals = self.PhModel(x)
-
-        y = y_reals[:, self.lower_limit:self.upper_limit]
-
-        return y
-
-    def matmulForward(self, x):
-        """
-        
-        Args:
-            x: input batch (batch_size, n_inputs)
-        """
-        x_reals = x
-
-        for i_ph in range(self._n_networks):
-            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
-
-            tf_matrix = self._ph_networks[i_ph].get_tf_matrix()
-            y_complex = torch.matmul(x_complex, tf_matrix)
-            d = self._photodetectors(y_complex)
-            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
-
-        lower_limit, upper_limit = self._getLimits()
-        y = x_reals[:, lower_limit:upper_limit]
-        return y
-
-    def _getLimits(self):
-        lower_limit = self._n_inputs//2 - (self._n_classes//2)
-        upper_limit = self._n_inputs//2 + self._n_classes//2
-
-        if self._n_classes % 2 != 0:
-            upper_limit = upper_limit + 1
-
-        return lower_limit, upper_limit

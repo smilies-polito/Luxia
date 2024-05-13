@@ -266,46 +266,43 @@ class FldzhyanBellArchitecture(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
+                 is_fastforward: bool = False
                  ):
         super(FldzhyanBellArchitecture, self).__init__()
-        self._n_layers = n_layers
-        self._ph_layers = nn.ModuleList()
-        self._ph_first_layer = Heater(n_heaters=n_inputs)
-        self._ph_last_layer = Heater(n_heaters=n_inputs)
-        self._matrices = nn.ParameterList()
+
+        ph_first_layer = Heater(n_heaters=n_inputs)
+        ph_last_layer = Heater(n_heaters=n_inputs)
+        if is_fastforward:
+            layer_list = []
+            layer_list.append(ph_first_layer)
+        else:
+            self._n_layers = n_layers
+            self._ph_first_layer = ph_first_layer
+            self._layer_matrices = nn.ParameterList()
+            self._ph_last_layer = ph_last_layer
 
         for i in range(n_layers):
-            i_losses = None
-            imbalance = None
-            if mmi_i_losses is not None:
-                i_losses = mmi_i_losses[i]
-            if mmi_imbalances is not None:
-                imbalance = mmi_imbalances[i]
+            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
+            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
-            if i % 2 == 0:
-                self._ph_layers.append(FldzhyanBellLayer(
-                    n_inputs=n_inputs,
-                    is_even_layer=True,
-                    mmi_i_losses=i_losses,
-                    mmi_imbalances=imbalance,
-                    ))
+            layer = FldzhyanBellLayer(
+                n_inputs=n_inputs,
+                is_even_layer=(i % 2 == 0),
+                mmi_i_losses=i_losses,
+                mmi_imbalances=imbalance
+            )
+
+            if is_fastforward:
+                layer_list.append(layer)
             else:
-                self._ph_layers.append(FldzhyanBellLayer(
-                    n_inputs=n_inputs,
-                    is_even_layer=False,
-                    mmi_i_losses=i_losses,
-                    mmi_imbalances=imbalance
-                    ))
+                self._layer_matrices.append(layer.get_tf_matrix())
 
-            self._matrices.append(self._ph_layers[i].get_tf_matrix())
+        if is_fastforward:
+            layer_list.append(ph_last_layer)
+            self._ph_layers = torch.nn.Sequential(*layer_list)
 
     def forward(self, x_complex):
-        x_complex = self._ph_first_layer(x_complex)
-        for layer in self._ph_layers:
-            x_complex = layer(x_complex)
-
-        x_complex = self._ph_last_layer(x_complex)
-        return x_complex
+        return self._ph_layers(x_complex)
 
     def get_tf_matrix(self):
         first_layer_phases = self._ph_first_layer.getPhases()
@@ -314,101 +311,12 @@ class FldzhyanBellArchitecture(nn.Module):
         last_layer_tf_matrix = torch.diag(last_layer_phases)
         tf_matrix_mid_layers = torch.linalg.multi_dot(
             tuple(
-                [self._matrices[i] for i in range(len(self._matrices))]
+                [self._layer_matrices[i]
+                    for i in range(len(self._layer_matrices))
+                 ]
             )
         )
         tf_matrix = torch.linalg.multi_dot(
             (first_layer_tf_matrix, tf_matrix_mid_layers, last_layer_tf_matrix)
         )
         return tf_matrix
-
-
-class FldzhyanBellModel(nn.Module):
-    def __init__(self,
-                 n_inputs: int,
-                 n_layers: int,
-                 n_classes: int,
-                 n_networks=2,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
-                 ):
-        super(FldzhyanBellModel, self).__init__()
-        self._n_inputs = n_inputs
-        self._n_layers = n_layers
-        self._n_classes = n_classes
-        self._n_networks = n_networks
-
-        self._photodetectors = Photodetector()
-
-        self._ph_networks = nn.ModuleList()
-        self._diag_layer = nn.ParameterList()
-        self._biases = nn.ParameterList()
-
-        for i in range(self._n_networks):
-            i_losses = None
-            imbalance = None
-            if mmi_i_losses is not None:
-                i_losses = mmi_i_losses[i]
-            if mmi_imbalances is not None:
-                imbalance = mmi_imbalances[i]
-
-            self._ph_networks.append(FldzhyanBellArchitecture(
-                n_layers=self._n_layers,
-                n_inputs=self._n_inputs,
-                mmi_i_losses=i_losses,
-                mmi_imbalances=imbalance
-            ))
-
-            self._diag_layer.append(nn.Parameter(
-                torch.rand(self._n_inputs), requires_grad=True))
-
-            self._biases.append(nn.Parameter(
-                torch.rand(self._n_inputs), requires_grad=True))
-
-        self.forward = self.matmulForward
-
-    def fastForward(self, x):
-        """
-        
-        Args:
-            x: input batch (batch_size, n_inputs)
-        """
-        x_reals = x
-
-        for i_ph in range(self._n_networks):
-            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
-            y_complex = self._ph_networks[i_ph](x_complex)
-            d = self._photodetectors(y_complex)
-            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
-
-        lower_limit, upper_limit = self._getLimits()
-        y = x_reals[:, lower_limit:upper_limit]
-        return y
-
-    def matmulForward(self, x):
-        """
-        
-        Args:
-            x: input batch (batch_size, n_inputs)
-        """
-        x_reals = x
-
-        for i_ph in range(self._n_networks):
-            x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
-            tf_matrix = self._ph_networks[i_ph].get_tf_matrix()
-            y_complex = torch.matmul(x_complex, tf_matrix)
-            d = self._photodetectors(y_complex)
-            x_reals = d * self._diag_layer[i_ph] + self._biases[i_ph]
-
-        lower_limit, upper_limit = self._getLimits()
-        y = x_reals[:, lower_limit:upper_limit]
-        return y
-
-    def _getLimits(self):
-        lower_limit = self._n_inputs//2 - (self._n_classes//2)
-        upper_limit = self._n_inputs//2 + self._n_classes//2
-
-        if self._n_classes % 2 != 0:
-            upper_limit = upper_limit + 1
-
-        return lower_limit, upper_limit

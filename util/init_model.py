@@ -9,7 +9,8 @@ def init_model(
     n_networks: int = 2,
     capacity: int = None,
     mmi_i_losses: torch.Tensor = None,
-    mmi_imbalances: torch.Tensor = None
+    mmi_imbalances: torch.Tensor = None,
+    is_fastforward: bool = False
 ) -> torch.nn.Module:
     """
     Initialize the model based on the name provided
@@ -23,47 +24,25 @@ def init_model(
         capacity (int): The capacity needed only for the photontorch model
         mmi_i_losses (torch.Tensor): losses of mmis or cross within the network
         mmi_imbalances (torch.Tensor): imbalances of mmi network
+        is_fastforward (bool): The fastforward parameter that is used in the
+        photonic model, it indicates if the model is fastforward or the
+        traditional matrix multiplication
 
     Returns:
         model (torch.nn.Module): The model
     """
 
-    if name == 'fldzhyan':
-        from photonic_models.fldzhyan import FldzhyanModel
-        return FldzhyanModel(n_inputs=n_inputs,
+    if name == 'fldzhyan' or name == 'fldzhyan_bell' or name == 'clements' or name == 'clements_bell':
+        from photonic_models.photonic_model import PhotonicModel
+        return PhotonicModel(architecture_name=name,
+                             n_inputs=n_inputs,
                              n_layers=n_layers,
                              n_classes=n_classes,
                              n_networks=n_networks,
                              mmi_i_losses=mmi_i_losses,
-                             mmi_imbalances=mmi_imbalances
+                             mmi_imbalances=mmi_imbalances,
+                             is_fastforward=is_fastforward,
                              )
-    elif name == 'clements':
-        from photonic_models.clements import ClementsModel
-        return ClementsModel(n_inputs=n_inputs,
-                             n_layers=n_layers,
-                             n_classes=n_classes,
-                             n_networks=n_networks,
-                             mmi_i_losses=mmi_i_losses,
-                             mmi_imbalances=mmi_imbalances
-                             )
-    elif name == 'fldzhyan_bell':
-        from photonic_models.fldzhyan_bell import FldzhyanBellModel
-        return FldzhyanBellModel(n_inputs=n_inputs,
-                                 n_layers=n_layers,
-                                 n_classes=n_classes,
-                                 n_networks=n_networks,
-                                 mmi_i_losses=mmi_i_losses,
-                                 mmi_imbalances=mmi_imbalances
-                                 )
-    elif name == 'clements_bell':
-        from photonic_models.clements_bell import ClementsBellModel
-        return ClementsBellModel(n_inputs=n_inputs,
-                                 n_layers=n_layers,
-                                 n_classes=n_classes,
-                                 n_networks=n_networks,
-                                 mmi_i_losses=mmi_i_losses,
-                                 mmi_imbalances=mmi_imbalances
-                                 )
     elif name == 'pt_clements':
         from pt_models.pt_clements_model import PtClementsModel
         if capacity is None:

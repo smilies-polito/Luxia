@@ -71,17 +71,25 @@ if __name__ == '__main__':
         help='The capacity of the photontorch network. Required only for the'
         'photontorch model.'
     )
-    parser.add_argument('--mmi_imbalances',
-                        action=argparse.BooleanOptionalAction,
-                        help='imbalances of the mmi s within the models.'
-                        'If True, make sure to create a mmi_imbalances.npy file'
-                        )
-
-    parser.add_argument('--mmi_i_losses',
-                        action=argparse.BooleanOptionalAction,
-                        help='Insertion losses of the mmi s within the models.'
-                        'If True, make sure to create a mmi_i_losses.npy file.'
-                        )
+    parser.add_argument(
+        '--mmi_imbalances',
+        action=argparse.BooleanOptionalAction,
+        help='imbalances of the mmi s within the models.'
+        'If True, make sure to create a mmi_imbalances.npy file'
+    )
+    parser.add_argument(
+        '--mmi_i_losses',
+        action=argparse.BooleanOptionalAction,
+        help='Insertion losses of the mmi s within the models.'
+        'If True, make sure to create a mmi_i_losses.npy file.'
+    )
+    parser.add_argument(
+        '--is_fastforward',
+        action=argparse.BooleanOptionalAction,
+        help='The fastforward parameter that is used in the photonic model,'
+        'it indicates if the model is fastforward or the traditional matrix'
+        'multiplication.'
+    )
     args = parser.parse_args()
 
     # Prepare the Data Set
@@ -155,7 +163,8 @@ if __name__ == '__main__':
         n_networks=args.n_networks,
         capacity=args.capacity,
         mmi_i_losses=mmi_i_losses,
-        mmi_imbalances=mmi_imbalances
+        mmi_imbalances=mmi_imbalances,
+        is_fastforward=args.is_fastforward
     ).to(device)
     os.makedirs(args.exp_dir, exist_ok=True)
     torch.save(model, os.path.join(args.exp_dir, f"model_epoch{0:03d}.pth"))
