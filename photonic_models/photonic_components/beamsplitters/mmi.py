@@ -37,35 +37,22 @@ class Mmi(nn.Module):
         self.n_mmis = n_mmis
         self.i_loss = i_loss
         self.imbalance = imbalance
-        if i_loss is None:
-            matCoeff = 1
-        else:
-            matCoeff = (1 - i_loss)
+
+        matCoeff = 1 if i_loss is None else (1-i_loss)
 
         matCoeff = matCoeff / torch.sqrt(torch.tensor(2.0))
         c0 = matCoeff * torch.tensor([1+0j], device=device)
         c1 = matCoeff * torch.tensor([0+1j], device=device)
 
-        coeff0 = c0
-        coeff1 = c1
-        coeff2 = c0
-        coeff3 = c1
+        self._pCoeff0 = c0 if imbalance is None else c0*(1-imbalance)
+        self._pCoeff1 = c1 if imbalance is None else c1*(1+imbalance)
+        self._pCoeff2 = c0 if imbalance is None else c0*(1+imbalance)
+        self._pCoeff3 = c1 if imbalance is None else c1*(1-imbalance)
 
-        if imbalance is not None:
-            coeff0 = coeff0 * (1 - imbalance)
-            coeff1 = coeff1 * (1 + imbalance)
-            coeff2 = coeff2 * (1 + imbalance)
-            coeff3 = coeff3 * (1 - imbalance)
+    def forward(self, portsA, portsB):
 
-        self._pCoeff0 = coeff0
-        self._pCoeff1 = coeff1
-        self._pCoeff2 = coeff2
-        self._pCoeff3 = coeff3
-
-    def forward(self, portA, portB):
-
-        y_0 = self._pCoeff0 * portA + self._pCoeff1 * portB
-        y_1 = self._pCoeff2 * portA + self._pCoeff3 * portB
+        y_0 = self._pCoeff0 * portsA + self._pCoeff1 * portsB
+        y_1 = self._pCoeff2 * portsA + self._pCoeff3 * portsB
 
         return y_0, y_1
 

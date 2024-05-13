@@ -4,7 +4,6 @@ from .photonic_components.heater import Heater
 from .photonic_components.mzi import Mzi
 from .photonic_components.photodetector import Photodetector
 from .util.util_functions import diag_matrix_alternating_tensor_with_ones
-from .util.util_functions import check_and_resize_input
 
 
 class ClementsBlock(nn.Module):
@@ -286,8 +285,12 @@ class ClementsModel(nn.Module):
             self.forward = self.matmulForward
 
     def fastForward(self, x):
-        # Add features with zeros if the architecture N > inputs
-        x_reals = check_and_resize_input(x, self._n_inputs)
+        """
+        
+        Args:
+            x: input batch (batch_size, n_inputs)
+        """
+        x_reals = x
 
         for i_ph in range(self._n_networks):
             x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
@@ -300,8 +303,12 @@ class ClementsModel(nn.Module):
         return y
 
     def matmulForward(self, x):
-        # Add features with zeros if the architecture N > inputs
-        x_reals = check_and_resize_input(x, self._n_inputs)
+        """
+        
+        Args:
+            x: input batch (batch_size, n_inputs)
+        """
+        x_reals = x
 
         for i_ph in range(self._n_networks):
             x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))

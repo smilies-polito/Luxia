@@ -6,7 +6,7 @@ import os
 import time
 
 from util.init_model import init_model
-from util.utils import load_dataset, generate_dataloader, \
+from util.utils import load_dataset, expand_data_features, generate_dataloader, \
     train_epoch, val_epoch, plot_trend
 
 
@@ -90,15 +90,22 @@ if __name__ == '__main__':
     print(f"[*] Loading {args.dataset} dataset")
     data_train, labels_train, data_test, labels_test = load_dataset(
         args.dataset
-
     )
+    print()
+
+    n_features = data_train.shape[-1]
+    n_inputs = args.n_inputs
+    print(f"[*] Expanding dataframe from {n_features} features to {n_inputs} inputs")
+    data_train, data_test = expand_data_features(
+        data_train, data_test, n_features, n_inputs
+    )
+    n_features = n_inputs
     print()
 
     print("[*] Splitting the data into training and validation"
           f"({int(args.val_frac*100):d}%) sets")
 
     print("And generating the dataloaders")
-    n_features = data_train.shape[-1]
     datal_train, datal_val, datal_test = generate_dataloader(
         val_frac=args.val_frac,
         n_features=n_features,
@@ -142,7 +149,7 @@ if __name__ == '__main__':
 
     model = init_model(
         name=args.model,
-        n_inputs=args.n_inputs,
+        n_inputs=n_inputs,
         n_classes=n_classes,
         n_layers=args.n_layers,
         n_networks=args.n_networks,
@@ -191,6 +198,8 @@ if __name__ == '__main__':
 
     plot_every = 50
 
+    times = []
+
     for epoch in range(args.epoch):
         print(f'EPOCH {epoch+1}:')
         start = time.time()
@@ -224,6 +233,13 @@ if __name__ == '__main__':
         print(f'LOSS train {avg_loss} valid {avg_vloss}')
         print(f'ACC train {avg_acc} valid {avg_vacc}')
 
+        end = time.time()
+        deltat = end-start
+        times.append(deltat)
+        print()
+        print(f"{deltat} seconds elapsed")
+        print(flush=True)
+
         if avg_vloss < avg_vloss_best:
             improv_counter += 1
             avg_vloss_best = avg_vloss
@@ -251,8 +267,6 @@ if __name__ == '__main__':
                 f'acc_epoch{epoch+1:03d}.png'
             )
 
-        end = time.time()
-        deltat = end-start
-        print()
-        print(f"{deltat} seconds elapsed")
-        print(flush=True)
+    print(f"Average epoch time: {np.mean(times)}")
+    print()
+

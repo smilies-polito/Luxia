@@ -37,6 +37,49 @@ def load_dataset(
         raise ValueError('Unknown dataset: {}'.format(name))
 
 
+def expand_data_features(
+    data_train: torch.Tensor, data_test: torch.Tensor, n_features: int, n_inputs: int
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Resize the input data based on the number of features and the number of inputs
+    of the photonic network.
+
+    Args:
+        data_train (torch.Tensor): The training data
+        data_test (torch.Tensor): The test data
+        n_features (int): The number of features of the dataset
+        n_inputs (int): The number of inputs of the photonic network
+
+    Return:
+        datal_train (torch.utils.data.DataLoader): The resized training dataloader
+        datal_test (torch.utils.data.DataLoader): The resized testing dataloader
+    """
+    if n_features > n_inputs:
+        raise ValueError(
+            f'The number of features exceeds the capacity of the photonic'
+            f'network. The maximum allowed number is: {n_inputs}'
+        )
+
+    # Resize the input data if the number of features is less than the
+    # number of inputs of the photnic network
+    if n_features < n_inputs:
+        d_resized_list = []
+        for d in [data_train, data_test]:
+            d_resized = torch.zeros(
+                (d.shape[0], n_inputs),
+                dtype = d.dtype
+            )
+
+            start_limit = (n_inputs - n_features) // 2
+            end_limit = start_limit + n_features
+            d_resized[..., start_limit:end_limit] = d
+            d_resized_list.append(d_resized)
+
+        return tuple(d_resized_list)
+    
+    return (data_train, data_test)
+
+
 def generate_dataloader(
     val_frac: float, n_features: int, batch_size: int, shuffle: bool,
     seed: int, data_train: torch.Tensor, labels_train: torch.Tensor,
