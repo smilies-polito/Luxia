@@ -4,7 +4,6 @@ from .photonic_components.heater import Heater
 from .photonic_components.beamsplitters.mmi import Mmi
 from .photonic_components.photodetector import Photodetector
 from .util.util_functions import diag_matrix_alternating_tensor_with_ones
-from .util.util_functions import check_and_resize_input
 
 
 class FldzhyanBlock(nn.Module):
@@ -33,11 +32,10 @@ class FldzhyanBlock(nn.Module):
 
     def forward(self, portsA, portsB):
         """
-        FIX:
         Note: n_A_inputs and n_B_inputs can change based on the fact that
         the number of the current layer or block is even or odd.
         However, n_A_inputs := n_B_inputs := n_blocks always and
-        n_blocks ~= n_inputs/2
+        n_blocks = n_inputs // 2
 
         Args:
             portsA: all "A" inputs, sampled every two (batch_size, n_A_inputs)
@@ -302,9 +300,9 @@ class RealToComplex(nn.Module):
         return torch.complex(x_reals, torch.zeros_like(x_reals))
 
 
-class MultiplyBias(nn.Module):
+class ElectronicFunction(nn.Module):
     def __init__(self, n_inputs):
-        super(MultiplyBias, self).__init__()
+        super(ElectronicFunction, self).__init__()
 
         self.mul = nn.Parameter(
             torch.rand(n_inputs), requires_grad=True
@@ -339,7 +337,7 @@ class FldzhyanModel(nn.Module):
         if self._n_classes % 2 != 0:
             self.upper_limit += 1
 
-        self._photodetector = Photodetector()
+        self._photodetectors = Photodetector()
 
         _ph_model = []
 
@@ -356,11 +354,9 @@ class FldzhyanModel(nn.Module):
                 mmi_imbalances=imbalance
             ))
 
-            # FIX: self._photodetector is always the same module repeated
-            # many times, i.e. SHARED weights
-            _ph_model.append(self._photodetector)
+            _ph_model.append(self._photodetectors)
 
-            _ph_model.append(MultiplyBias(n_inputs))
+            _ph_model.append(ElectronicFunction(n_inputs))
         
         self.PhModel = torch.nn.Sequential(*_ph_model)
 
@@ -379,8 +375,12 @@ class FldzhyanModel(nn.Module):
         return y
 
     def matmulForward(self, x):
-        # Add features with zeros if the architecture N > inputs
-        x_reals = check_and_resize_input(x, self._n_inputs)
+        """
+        
+        Args:
+            x: input batch (batch_size, n_inputs)
+        """
+        x_reals = x
 
         for i_ph in range(self._n_networks):
             x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))

@@ -50,19 +50,6 @@ class Mmi(nn.Module):
         self._pCoeff3 = c1 if imbalance is None else c1*(1-imbalance)
 
     def forward(self, portsA, portsB):
-        """
-        FIX:
-        Note: n_A_inputs and n_B_inputs can change based on the fact that
-        the number of the current layer or block is even or odd.
-        However, n_A_inputs := n_B_inputs := n_mmis always
-
-        Args:
-            portsA: all "A" inputs, sampled every two (batch_size, n_A_inputs)
-            portsB: all "B" inputs, sampled every two (batch_size, n_B_inputs)
-
-        Return:
-            y_0, y_1: tuple of (batch_size, n_mmis), (batch_size, n_mmis)
-        """
 
         y_0 = self._pCoeff0 * portsA + self._pCoeff1 * portsB
         y_1 = self._pCoeff2 * portsA + self._pCoeff3 * portsB

@@ -13,11 +13,9 @@ class Heater(nn.Module):
 
     def forward(self, waveInput):
         """
-        Note: n_heaters can change based on the fact that
-        the number of the current layer or block is even or odd.
         
         Args:
-            waveInput: all "A" inputs, sampled every two (batch_size, n_heaters)
+            waveInput: inputs sampled every two (batch_size, n_heaters)
 
         Return:
             waveOutput: (batch_size, n_heaters)
@@ -26,5 +24,14 @@ class Heater(nn.Module):
         return waveOutput
 
     def getPhases(self):
+        """
+        Return the phase shifts of the heaters
+
+        Args:
+            None
+
+        Return:
+            torch.tensor: phase shifts of the heaters
+        """
         weights = torch.exp(1.j*self.phase_shift)
         return weights
