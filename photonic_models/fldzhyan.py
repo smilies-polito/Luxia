@@ -43,13 +43,16 @@ class FldzhyanBlock(nn.Module):
         Return:
             y_complex: (batch_size, 2*n_blocks)
         """
-        outPs = self._heater(portsA) # (batch_size, n_blocks)
-        y_0, y_1 = self._mmi(outPs, portsB) # (batch_size, n_blocks), (batch_size, n_blocks)
+        outPs = self._heater(portsA)  # (batch_size, n_blocks)
+        # (batch_size, n_blocks), (batch_size, n_blocks)
+        y_0, y_1 = self._mmi(outPs, portsB)
 
-        y_complex = torch.stack([y_0, y_1], axis=2) # (batch_size, n_blocks, 2)
+        # (batch_size, n_blocks, 2)
+        y_complex = torch.stack([y_0, y_1], axis=2)
 
         # return the elements by alternating them
-        y_complex = y_complex.view(y_0.shape[0], -1) # (batch_size, 2*n_blocks)
+        # (batch_size, 2*n_blocks)
+        y_complex = y_complex.view(y_0.shape[0], -1)
 
         return y_complex
 
@@ -131,7 +134,6 @@ class FldzhyanLayer(nn.Module):
         """
         Args:
             x_complex: input batch in complex numbers (batch_size, n_inputs)
-        
         Return:
             y_complex: output batch (batch_size, n_inputs)
         """

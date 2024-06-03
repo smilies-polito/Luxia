@@ -31,8 +31,8 @@ if __name__ == '__main__':
         'validation. Default is 0.1.'
     )
     parser.add_argument(
-        '--lr', type=float, default=1e-3, required=False,
-        help='The learning rate. Default is 1e-3.'
+        '--lr', type=float, default=1e-4, required=False,
+        help='The learning rate. Default is 1e-4.'
     )
     parser.add_argument(
         '--exp_dir', type=str, default='experiment', required=False,
@@ -278,4 +278,3 @@ if __name__ == '__main__':
 
     print(f"Average epoch time: {np.mean(times)}")
     print()
-

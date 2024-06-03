@@ -6,14 +6,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Heater(nn.Module):
-    def __init__(self, n_heaters:int):
+    def __init__(self, n_heaters: int):
         super(Heater, self).__init__()
         phi = 2*torch.pi*torch.rand(n_heaters)
         self.phase_shift = nn.Parameter(phi, requires_grad=True)
 
     def forward(self, waveInput):
         """
-        
         Args:
             waveInput: inputs sampled every two (batch_size, n_heaters)
 

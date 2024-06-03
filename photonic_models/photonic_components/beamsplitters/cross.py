@@ -13,9 +13,9 @@ class Cross(nn.Module):
     Two input - two output cross beamsplitter.
         The model follows the following S-matrix:
 
-        A -- --C                | 1 | j |
+        A -- --C                | 0 | 1 |
             X               1 x |   |   |
-        B -- --D                | j | 1 |
+        B -- --D                | 1 | 0 |
 
         Args:
             n_crosses: number of Cross beamsplitters, to set one after the
@@ -33,48 +33,37 @@ class Cross(nn.Module):
                  ):
         # Constructor of the Class Cross
         super(Cross, self).__init__()
-        if i_loss is None:
-            matCoeff = 1
-        else:
-            matCoeff = (1 - i_loss)
 
-        c0 = matCoeff * torch.tensor([1+0j], device=device)
-        c1 = matCoeff * torch.tensor([0+1j], device=device)
+        ones = torch.ones(1)
+        zeros = torch.zeros(1)
 
-        coeff0 = c0
-        coeff1 = c1
-        coeff2 = c0
-        coeff3 = c1
+        mC = ones if i_loss is None else torch.sqrt(i_loss)
 
-        if crosstalk is not None:
-            coeff0 = coeff0 * (1 - crosstalk)
-            coeff1 = coeff1 * (1 + crosstalk)
-            coeff2 = coeff2 * (1 + crosstalk)
-            coeff3 = coeff3 * (1 - crosstalk)
+        ct0 = mC * torch.sqrt(crosstalk) if crosstalk is not None else None
+        ct1 = mC * torch.sqrt(1 - crosstalk) if crosstalk is not None else None
 
-        self._pCoeff0 = coeff0
-        self._pCoeff1 = coeff1
-        self._pCoeff2 = coeff2
-        self._pCoeff3 = coeff3
+        self._C_00 = zeros if crosstalk is None else mC * ct0
+        self._C_01 = ones if crosstalk is None else mC * ct1
+        self._C_10 = ones if crosstalk is None else mC * ct1
+        self._C_11 = zeros if crosstalk is None else mC * ct0
 
     def forward(self, portA, portB):
 
-        y_0 = self._pCoeff0 * portA + self._pCoeff1 * portB
-        y_1 = self._pCoeff2 * portA + self._pCoeff3 * portB
-
+        y_0 = self._C_00 * portA + self._C_01 * portB
+        y_1 = self._C_10 * portA + self._C_11 * portB
         return y_0, y_1
 
     def get_tf_matrix(self):
         if self.i_loss is None and self.imbalance is None:
             tf_matrix = [torch.stack([
-                torch.tensor([self._pCoeff0, self._pCoeff1], dtype=torch.complex64),
-                torch.tensor([self._pCoeff2, self._pCoeff3], dtype=torch.complex64)
+                torch.tensor([self._C_00, self._C_01], dtype=torch.complex64),
+                torch.tensor([self._C_10, self._C_11], dtype=torch.complex64)
             ])]*self.n_mmis
         else:
             tf_matrix = torch.stack(
                 [
-                    torch.stack([self._pCoeff0, self._pCoeff1], dim=-1),
-                    torch.stack([self._pCoeff2, self._pCoeff3], dim=-1)
+                    torch.stack([self._C_00, self._C_01], dim=-1),
+                    torch.stack([self._C_10, self._C_11], dim=-1)
                 ],
                 dim=-1
             )
