@@ -44,7 +44,7 @@ class Mmi(nn.Module):
         self.i_loss = i_loss
         self.imbalance = imbalance
 
-        ones = torch.ones(1)
+        ones = torch.ones(1, device=device)
         mC = ones/torch.sqrt(ones*2) if i_loss is None else torch.sqrt(i_loss)
 
         c0 = mC * torch.tensor([1+0j], device=device)
