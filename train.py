@@ -4,6 +4,8 @@ import photontorch
 import argparse
 import os
 import time
+import psutil
+import tracemalloc
 
 from util.init_model import init_model
 from util.utils import load_dataset, expand_data_features, generate_dataloader, \
@@ -11,6 +13,7 @@ from util.utils import load_dataset, expand_data_features, generate_dataloader, 
 
 
 if __name__ == '__main__':
+    tracemalloc.start()
     parser = argparse.ArgumentParser(description='Train the model.')
     # Parameters for the training
     parser.add_argument(
@@ -185,6 +188,16 @@ if __name__ == '__main__':
     )
 
     print()
+
+    current, peak = tracemalloc.get_traced_memory()
+    print(f"Current memory usage: {current / 1024 / 1024} MB; Peak: {peak / 1024 / 1024} MB")
+    tracemalloc.stop()
+
+    # Get memory usage using psutil
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    print(f"Memory Usage: {memory_info.rss / (1024 ** 2)} MB")
+    exit()
 
     print("[*] Start training")
     if args.verbose:
