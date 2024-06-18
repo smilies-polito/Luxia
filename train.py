@@ -6,7 +6,7 @@ import os
 import time
 
 from util.init_model import init_model
-from util.mem_usage import print_memory_usage, init_memory_usage
+from util.mem_usage import get_mem_usage
 from util.utils import load_dataset, expand_data_features, generate_dataloader, \
     train_epoch, val_epoch, plot_trend
 
@@ -166,7 +166,7 @@ if __name__ == '__main__':
             device = torch.device('cpu')
         else:
             device = torch.device('cuda')
-    print(f"[*] Using {args.device} device")
+    print(f"[*] Using {device} device")
 
     model = init_model(
         name=args.model,
@@ -224,8 +224,6 @@ if __name__ == '__main__':
     memory = []
     if device.type == 'cuda':
         mem_gpu = []
-    # Initialize memory usage
-    init_memory_usage(device)
 
     for epoch in range(args.epoch):
         print(f'EPOCH {epoch+1}:')
@@ -266,7 +264,7 @@ if __name__ == '__main__':
         print()
         print(f"{deltat} seconds elapsed")
         print(flush=True)
-        print_memory_usage(device)
+        get_mem_usage(device)
         print()
 
         if avg_vloss < avg_vloss_best:
@@ -297,5 +295,3 @@ if __name__ == '__main__':
             )
     print(f"Average epoch time: {np.mean(times)}")
     print()
-
-
