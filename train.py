@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Parameters for Photon_NN and Photontorch Models
     parser.add_argument(
         '--model', type=str, default='fldzhyan', required=True,
-        help="The model to be trained (fldzhyan, clements, pt_clements)."
+        help="The model to be trained (fldzhyan, clements, pt_clements, nx_rec_mesh)."
         "Deafult is fldzhyan"
     )
     parser.add_argument(
@@ -188,17 +188,6 @@ if __name__ == '__main__':
     )
 
     print()
-
-    current, peak = tracemalloc.get_traced_memory()
-    print(f"Current memory usage: {current / 1024 / 1024} MB; Peak: {peak / 1024 / 1024} MB")
-    tracemalloc.stop()
-
-    # Get memory usage using psutil
-    process = psutil.Process(os.getpid())
-    memory_info = process.memory_info()
-    print(f"Memory Usage: {memory_info.rss / (1024 ** 2)} MB")
-    exit()
-
     print("[*] Start training")
     if args.verbose:
         print(f"\tEpochs: {args.epoch}")
@@ -288,6 +277,12 @@ if __name__ == '__main__':
                 args.exp_dir,
                 f'acc_epoch{epoch+1:03d}.png'
             )
+
+    # Get memory usage using psutil
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    print(f"Memory Usage: {memory_info.rss / (1024 ** 2)} MB")
+    exit()
 
     print(f"Average epoch time: {np.mean(times)}")
     print()

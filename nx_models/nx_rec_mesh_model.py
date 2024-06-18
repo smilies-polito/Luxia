@@ -23,28 +23,28 @@ class ElectronicFunction(torch.nn.Module):
         return x * self.diag_layer + self.bias
 
 
-class NxClementsModel(torch.nn.Module):
+class NxRecMeshModel(torch.nn.Module):
     def __init__(self,
                  n_inputs: int,
                  n_layers: int,
                  n_classes: int,
                  capacity=2,
-                 n_networks=2):
+                 n_architectures=2):
 
-        super(NxClementsModel, self).__init__()
+        super(NxRecMeshModel, self).__init__()
 
         self.n_inputs = n_inputs
         self.n_classes = n_classes
-        self.networks = n_networks
+        self.n_arch = n_architectures
 
-        self.clementsNet = torch.nn.ModuleList()
+        self.architecture = torch.nn.ModuleList()
         self.electronicFunc = torch.nn.ModuleList()
 
-        for i in range(n_networks):
+        for i in range(n_architectures):
             # rm = RMTorch(units=n_inputs, num_layers=n_layers)
             rm = RMTorch(units=n_inputs)
             # rm = clements_decomposition(rm)
-            self.clementsNet.append(rm.to(device))
+            self.architecture.append(rm.to(device))
 
             self.electronicFunc.append(
                 ElectronicFunction(n_inputs).to(device))
@@ -53,11 +53,11 @@ class NxClementsModel(torch.nn.Module):
 
         # Add features with zeros if the architecture N > inputs
         x_reals = self._resizeX(x)
-        for i in range(self.networks):
+        for i in range(self.n_arch):
             x_complex = torch.stack(
                 [x_reals, torch.zeros_like(x_reals)], dim=0)
 
-            x_complex = self.clementsNet[i](x_complex)
+            x_complex = self.architecture[i](x_complex)
             x_reals = self.electronicFunc[i](x_complex)
         y = x_reals
         lower_limit, upper_limit = self._getLimits()

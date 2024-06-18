@@ -53,14 +53,14 @@ def init_model(
                             n_networks=n_networks
                             )
         return m
-    elif name == 'nx_clements':
-        from nx_models.nx_clements_model import NxClementsModel
-        m = NxClementsModel(n_inputs=n_inputs,
-                            n_layers=n_layers,
-                            n_classes=n_classes,
-                            capacity=capacity,
-                            n_networks=n_networks
-                            )
+    elif name == 'nx_rec_mesh':
+        from nx_models.nx_rec_mesh_model import NxRecMeshModel
+        m = NxRecMeshModel(n_inputs=n_inputs,
+                           n_layers=n_layers,
+                           n_classes=n_classes,
+                           capacity=capacity,
+                           n_networks=n_networks
+                           )
         return m
     else:
         raise ValueError('Unknown model: {}'.format(name))
