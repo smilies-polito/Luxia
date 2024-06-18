@@ -20,7 +20,17 @@ def print_memory_usage():
         handle = nvmlDeviceGetHandleByIndex(0)  # GPU 0
         # GPU Memory
         info = nvmlDeviceGetMemoryInfo(handle)
-        print(f"GPU Memory - Free : {info.free / 1024 ** 2} MB")
-        print(f"GPU Memory - Used : {info.used / 1024 ** 2} MB")
-        print(f"GPU Memory - Total: {info.total / 1024 ** 2} MB")
+        # Assuming 'info' is an object with attributes 'free', 'used', and 'total' in bytes.
+        free_mb = info.free / 1024 ** 2
+        used_mb = info.used / 1024 ** 2
+        total_mb = info.total / 1024 ** 2
+
+        # Determine the width needed for alignment
+        width = max(len(f"{free_mb:.2f}"), len(
+            f"{used_mb:.2f}"), len(f"{total_mb:.2f}"))
+
+        # Print formatted strings with aligned decimal points
+        print(f"GPU Memory - Used : {used_mb:>{width}.2f} MB")
+        print(f"GPU Memory - Free : {free_mb:>{width}.2f} MB")
+        print(f"GPU Memory - Total: {total_mb:>{width}.2f} MB")
         nvmlShutdown()
