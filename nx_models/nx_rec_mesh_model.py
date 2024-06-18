@@ -1,8 +1,6 @@
 import torch
 from neurophox.torch import RMTorch
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 class ElectronicFunction(torch.nn.Module):
     def __init__(self, n_inputs):
@@ -25,6 +23,7 @@ class ElectronicFunction(torch.nn.Module):
 
 class NxRecMeshModel(torch.nn.Module):
     def __init__(self,
+                 device: torch.device,
                  n_inputs: int,
                  n_layers: int,
                  n_classes: int,

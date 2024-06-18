@@ -86,7 +86,8 @@ class PhotonicModel(nn.Module):
                  n_networks: int = 2,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
-                 is_fastforward: bool = False
+                 is_fastforward: bool = False,
+                 device: torch.device = torch.device('cpu')
                  ):
         super(PhotonicModel, self).__init__()
         self._n_networks = n_networks

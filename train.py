@@ -6,7 +6,7 @@ import os
 import time
 
 from util.init_model import init_model
-from util.mem_usage import print_memory_usage
+from util.mem_usage import print_memory_usage, init_memory_usage
 from util.utils import load_dataset, expand_data_features, generate_dataloader, \
     train_epoch, val_epoch, plot_trend
 
@@ -42,6 +42,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--seed', type=int, default=1, required=False,
         help='The seed. Default is 1e-4.'
+    )
+    parser.add_argument(
+        '--device', type=str, default='cpu', required=False,
+        help='The device to be used (cpu, cuda). Default is cpu.'
     )
     parser.add_argument(
         '--verbose', type=bool, default=True, required=False,
@@ -154,10 +158,19 @@ if __name__ == '__main__':
     n_classes = len(torch.unique(labels_train))
 
     print(f"[*] Initialize {args.model} model")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print()
+
+    if args.device == 'cuda':
+        if not torch.cuda.is_available():
+            print("WARNING: CUDA is not available")
+            device = torch.device('cpu')
+        else:
+            device = torch.device('cuda')
+    print(f"[*] Using {args.device} device")
 
     model = init_model(
         name=args.model,
+        device=device,
         n_inputs=n_inputs,
         n_classes=n_classes,
         n_layers=args.n_layers,
@@ -211,6 +224,8 @@ if __name__ == '__main__':
     memory = []
     if device.type == 'cuda':
         mem_gpu = []
+    # Initialize memory usage
+    init_memory_usage(device)
 
     for epoch in range(args.epoch):
         print(f'EPOCH {epoch+1}:')
@@ -251,7 +266,7 @@ if __name__ == '__main__':
         print()
         print(f"{deltat} seconds elapsed")
         print(flush=True)
-        print_memory_usage()
+        print_memory_usage(device)
         print()
 
         if avg_vloss < avg_vloss_best:

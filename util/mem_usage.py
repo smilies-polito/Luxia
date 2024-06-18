@@ -2,13 +2,13 @@ import torch
 import psutil
 import os
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-if device.type == 'cuda':
-    from pynvml import *
+def init_mem_usage(device: torch.device):
+    if device.type == 'cuda':
+        from pynvml import *
 
 
-def print_memory_usage():
+def print_memory_usage(device: torch.device):
     # CPU Memory
     process = psutil.Process(os.getpid())
     memory_info = process.memory_info()

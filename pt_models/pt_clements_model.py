@@ -3,8 +3,6 @@ import photontorch as pt
 # Python
 import torch
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 class ElectronicFunction(torch.nn.Module):
 
@@ -23,6 +21,7 @@ class ElectronicFunction(torch.nn.Module):
 
 class PtClementsModel(torch.nn.Module):
     def __init__(self,
+                 device: torch.device,
                  n_inputs: int,
                  n_classes: int,
                  capacity=2,

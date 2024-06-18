@@ -3,6 +3,7 @@ import torch
 
 def init_model(
     name: str,
+    device: torch.device,
     n_inputs: int,
     n_classes: int,
     n_layers: int = None,
@@ -42,12 +43,14 @@ def init_model(
                              mmi_i_losses=mmi_i_losses,
                              mmi_imbalances=mmi_imbalances,
                              is_fastforward=is_fastforward,
+                             device=device
                              )
     elif name == 'pt_clements':
         from pt_models.pt_clements_model import PtClementsModel
         if capacity is None:
             raise ValueError('Capacity is required for the PtClementsModel')
-        m = PtClementsModel(n_inputs=n_inputs,
+        m = PtClementsModel(device=device,
+                            n_inputs=n_inputs,
                             n_classes=n_classes,
                             capacity=capacity,
                             n_networks=n_networks
@@ -55,7 +58,8 @@ def init_model(
         return m
     elif name == 'nx_rec_mesh':
         from nx_models.nx_rec_mesh_model import NxRecMeshModel
-        m = NxRecMeshModel(n_inputs=n_inputs,
+        m = NxRecMeshModel(device=device,
+                           n_inputs=n_inputs,
                            n_layers=n_layers,
                            n_classes=n_classes,
                            capacity=capacity,
