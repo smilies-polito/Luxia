@@ -208,6 +208,9 @@ if __name__ == '__main__':
     plot_every = 50
 
     times = []
+    memory = []
+    if device.type == 'cuda':
+        mem_gpu = []
 
     for epoch in range(args.epoch):
         print(f'EPOCH {epoch+1}:')
@@ -248,6 +251,8 @@ if __name__ == '__main__':
         print()
         print(f"{deltat} seconds elapsed")
         print(flush=True)
+        print_memory_usage()
+        print()
 
         if avg_vloss < avg_vloss_best:
             improv_counter += 1
@@ -277,6 +282,5 @@ if __name__ == '__main__':
             )
     print(f"Average epoch time: {np.mean(times)}")
     print()
-    print_memory_usage()
 
 
