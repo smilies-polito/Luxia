@@ -166,6 +166,9 @@ if __name__ == '__main__':
             device = torch.device('cpu')
         else:
             device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+
     print(f"[*] Using {device} device")
 
     model = init_model(
