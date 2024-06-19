@@ -63,7 +63,7 @@ def init_model(
                            n_layers=n_layers,
                            n_classes=n_classes,
                            capacity=capacity,
-                           n_networks=n_networks
+                           n_architectures=n_networks
                            )
         return m
     else:
