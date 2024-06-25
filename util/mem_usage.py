@@ -6,7 +6,7 @@ import os
 def get_mem_usage(device: torch.device):
     if device.type == 'cuda':
         try:
-            from pynvml import nvmlInit, nvmlShutdown, nvmlError
+            from pynvml import nvmlInit, nvmlShutdown, NVMLError
             from pynvml import nvmlDeviceGetHandleByIndex
             from pynvml import nvmlDeviceGetMemoryInfo
 
@@ -27,7 +27,7 @@ def get_mem_usage(device: torch.device):
             print(f"GPU Memory - Free : {free_mb:>{width}.2f} MB")
             print(f"GPU Memory - Total: {total_mb:>{width}.2f} MB")
 
-        except nvmlError as e:
+        except NVMLError as e:
             print(f"Failed to initialize NVML: {e}")
         finally:
             nvmlShutdown()
