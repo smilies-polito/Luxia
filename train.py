@@ -166,8 +166,10 @@ if __name__ == '__main__':
         if not torch.cuda.is_available():
             print("WARNING: CUDA is not available")
             device = torch.device('cpu')
+            args.device = 'cpu'
         else:
             device = torch.device('cuda')
+            args.device = 'cuda'
     else:
         device = torch.device('cpu')
 
