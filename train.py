@@ -1,3 +1,5 @@
+import wandb
+wandb.login(key="a2d765b3686313fdb440d0d239660d944e97da5f")
 import torch
 import numpy as np
 import photontorch
@@ -171,6 +173,8 @@ if __name__ == '__main__':
 
     print(f"[*] Using {device} device")
 
+    wandb.init(project=args.model, config=args)
+
     model = init_model(
         name=args.model,
         device=device,
@@ -254,6 +258,13 @@ if __name__ == '__main__':
         #     'val_loss': batch_vloss,
         # })
 
+        wandb.log({
+            'train_loss': avg_loss,
+            'val_loss': avg_vloss,
+            'train_acc': avg_acc,
+            'val_acc': avg_vacc,
+        })
+
         avg_loss_list.append(avg_loss)
         avg_vloss_list.append(avg_vloss)
         avg_acc_list.append(avg_acc)
@@ -298,3 +309,5 @@ if __name__ == '__main__':
             )
     print(f"Average epoch time: {np.mean(times)}")
     print()
+    print("Training finished")
+    wandb.finish()
