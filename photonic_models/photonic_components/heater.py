@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 
-# Select GPU if available, else fall back to CPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 class Heater(nn.Module):
     def __init__(self, n_heaters: int):

@@ -67,16 +67,21 @@ def init_args():
         'photontorch model.'
     )
     parser.add_argument(
-        '--mmi_imbalances',
-        action=argparse.BooleanOptionalAction,
-        help='imbalances of the mmi s within the models.'
-        'If True, make sure to create a mmi_imbalances.npy file'
+        '--imbalances', type=float, default=0.0, required=False,
+        help='imbalances of the mmis or mzis within the models.'
     )
     parser.add_argument(
-        '--mmi_i_losses',
-        action=argparse.BooleanOptionalAction,
+        '--i_losses', type=float, default=0.0, required=False,
         help='Insertion losses of the mmi s within the models.'
-        'If True, make sure to create a mmi_i_losses.npy file.'
+    )
+    parser.add_argument(
+        '--rnd_imbalances', type=float, default=0.0, required=False,
+        help='imbalances of the mmi s within the models. from 0 to set value.'
+    )
+    parser.add_argument(
+        '--rnd_i_losses', type=float, default=0.0, required=False,
+        help='Insertion losses of the mmi s or mzis within the models. from 0'
+        'to the set value.'
     )
     parser.add_argument(
         '--is_fastforward',

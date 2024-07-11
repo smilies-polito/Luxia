@@ -1,11 +1,64 @@
-import numpy as np
+import torch
 
-a = np.array([
-    [
-        [0.1, 0.2, 0.3, 0.4],
-        [0.11, 0.22, 0.33, 0]
-    ],
-])
 
-np.save('mmi_imbalances.npy', a)
+def get_mmi_rand_imbalances(n_networks, n_layers, n_inputs, val_range):
+    n_mmis = n_inputs // 2  # number of mmis in the model (mmi per layer)
+    mmi_imbalances = []
+    for i in range(n_networks):
+        imb_arch = []
+        for j in range(n_layers):
+            n_mmis = n_inputs // 2
+            if j % 2 != 0:
+                n_mmis -= 1
+            imb_arch.append(torch.rand(n_mmis)*val_range)
+        mmi_imbalances.append(imb_arch)
 
+    return mmi_imbalances
+
+
+def get_mmi_fix_imbalances(n_networks, n_layers, n_inputs, imb_val):
+    n_mmis = n_inputs // 2  # number of mmis in the model (mmi per layer)
+    mmi_imbalances = []
+    for i in range(n_networks):
+        imb_arch = []
+        for j in range(n_layers):
+            n_mmis = n_inputs // 2
+            if j % 2 != 0:
+                n_mmis -= 1
+            imb_arch.append(torch.tensor([imb_val]))
+        mmi_imbalances.append(imb_arch)
+
+    return mmi_imbalances
+
+
+def get_mzi_rand_imbalances(n_networks, n_layers, n_inputs, val_range):
+    n_mmis = n_inputs // 2  # number of mmis in the model (mmi per layer)
+    mmi_imbalances = []
+    for i in range(n_networks):
+        imb_arch = []
+        for j in range(n_layers):
+            imb_lay = []
+            n_mmis = n_inputs // 2
+            if j % 2 != 0:
+                n_mmis -= 1
+            imb_lay.append(torch.rand(n_mmis)*val_range)
+            imb_lay.append(torch.rand(n_mmis)*val_range)
+            imb_arch.append(imb_lay)
+        mmi_imbalances.append(imb_arch)
+
+    return mmi_imbalances
+
+
+def get_mzi_fix_imbalances(n_networks, n_layers, n_inputs, imb_val):
+    n_mmis = n_inputs // 2  # number of mmis in the model (mmi per layer)
+    mmi_imbalances = []
+    for i in range(n_networks):
+        imb_arch = []
+        for j in range(n_layers):
+            n_mmis = n_inputs // 2
+            if j % 2 != 0:
+                n_mmis -= 1
+            imb_arch.append(torch.tensor([imb_val]))
+        mmi_imbalances.append(imb_arch)
+
+    return mmi_imbalances

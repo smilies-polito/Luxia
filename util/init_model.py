@@ -10,7 +10,7 @@ def init_model(
     n_networks: int = 2,
     capacity: int = None,
     mmi_i_losses: torch.Tensor = None,
-    mmi_imbalances: torch.Tensor = None,
+    mmi_imbalances: [] = None,
     is_fastforward: bool = False
 ) -> torch.nn.Module:
     """
@@ -43,7 +43,6 @@ def init_model(
                              mmi_i_losses=mmi_i_losses,
                              mmi_imbalances=mmi_imbalances,
                              is_fastforward=is_fastforward,
-                             device=device
                              )
     elif name == 'pt_clements':
         from pt_models.pt_clements_model import PtClementsModel

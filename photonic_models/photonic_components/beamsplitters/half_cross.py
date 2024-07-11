@@ -1,10 +1,5 @@
-
 import torch
 import torch.nn as nn
-
-
-# Select GPU if available, else fall back to CPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class HalfCross(nn.Module):
@@ -33,18 +28,18 @@ class HalfCross(nn.Module):
                  ):
         # Constructor of the Class Cross
         super(HalfCross, self).__init__()
-        matCoeff = torch.tensor(1, device=device)
-        matCoeff = matCoeff if i_loss is None else (1-i_loss)
+        one = torch.tensor([1+0j])
+        mC = one if i_loss is None else (1-i_loss)*one
+        mC = torch.sqrt(mC)
 
-        c = torch.sqrt(matCoeff) * torch.tensor([1+0j], device=device)
-
-        self._pCoeff = c if crosstalk is None else c * (torch.sqrt(1-crosstalk))
+        self.register_buffer(
+            '_C', mC if crosstalk is None else mC * (torch.sqrt(crosstalk)))
 
     def forward(self, portA):
 
-        y = self._pCoeff * portA
+        y = self._C * portA
 
         return y
 
     def get_coefficients(self):
-        return self._pCoeff
+        return self._C

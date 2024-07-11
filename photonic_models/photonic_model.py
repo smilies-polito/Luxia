@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .photonic_components.photodetector import Photodetector
+from .photonic_architectures.ph_architecture import PhotonicArchitecture
 
 
 class RealToComplex(nn.Module):
@@ -12,69 +13,16 @@ class RealToComplex(nn.Module):
 
 
 class ElectronicFunction(nn.Module):
-    def __init__(self, n_inputs):
+    def __init__(self, n_inputs: int):
         super(ElectronicFunction, self).__init__()
 
         self.diag_layer = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True
-        )
+            torch.rand(n_inputs), requires_grad=True)
 
-        self.bias = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True
-        )
+        self.bias = nn.Parameter(torch.rand(n_inputs), requires_grad=True)
 
     def forward(self, x):
         return x * self.diag_layer + self.bias
-
-
-class PhotonicArchitecture(nn.Module):
-    @staticmethod
-    def create_architecture(
-        name: str,
-        n_layers: int,
-        n_inputs: int,
-        mmi_i_losses: torch.Tensor = None,
-        mmi_imbalances: torch.Tensor = None,
-        is_fastforward: bool = False
-    ):
-        if name == 'fldzhyan':
-            from photonic_models.fldzhyan import FldzhyanArchitecture
-            return FldzhyanArchitecture(
-                n_inputs=n_inputs,
-                n_layers=n_layers,
-                mmi_i_losses=mmi_i_losses,
-                mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
-            )
-        elif name == 'clements':
-            from photonic_models.clements import ClementsArchitecture
-            return ClementsArchitecture(
-                n_inputs=n_inputs,
-                n_layers=n_layers,
-                mmi_i_losses=mmi_i_losses,
-                mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
-            )
-        elif name == 'fldzhyan_bell':
-            from photonic_models.fldzhyan_bell import FldzhyanBellArchitecture
-            return FldzhyanBellArchitecture(
-                n_inputs=n_inputs,
-                n_layers=n_layers,
-                mmi_i_losses=mmi_i_losses,
-                mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
-            )
-        elif name == 'clements_bell':
-            from photonic_models.clements_bell import ClementsBellArchitecture
-            return ClementsBellArchitecture(
-                n_inputs=n_inputs,
-                n_layers=n_layers,
-                mmi_i_losses=mmi_i_losses,
-                mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
-            )
-        else:
-            raise ValueError('Unknown model: {}'.format(name))
 
 
 class PhotonicModel(nn.Module):
@@ -84,10 +32,9 @@ class PhotonicModel(nn.Module):
                  n_layers: int,
                  n_classes: int,
                  n_networks: int = 2,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmi_i_losses: [] = None,
+                 mmi_imbalances: [] = None,
                  is_fastforward: bool = False,
-                 device: torch.device = torch.device('cpu')
                  ):
         super(PhotonicModel, self).__init__()
         self._n_networks = n_networks

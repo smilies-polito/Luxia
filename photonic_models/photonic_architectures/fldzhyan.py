@@ -1,8 +1,8 @@
 import torch
 from torch import nn
-from .photonic_components.heater import Heater
-from .photonic_components.beamsplitters.mmi import Mmi
-from .util.util_functions import diag_matrix_alternating_tensor_with_ones
+from ..photonic_components.heater import Heater
+from ..photonic_components.beamsplitters.mmi import Mmi
+from ..util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
 class FldzhyanBlock(nn.Module):
@@ -246,8 +246,8 @@ class FldzhyanArchitecture(nn.Module):
     """
 
     def __init__(self, n_layers: int, n_inputs: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmi_i_losses: [] = None,
+                 mmi_imbalances: [] = None,
                  is_fastforward: bool = False
                  ):
         super(FldzhyanArchitecture, self).__init__()
@@ -258,6 +258,11 @@ class FldzhyanArchitecture(nn.Module):
             self._layer_matrices = nn.ParameterList()
 
         for i in range(n_layers):
+            # if mmi_imbalances is None:
+            #     imbalance = None
+            # else:
+            #     n_lay = len(mmi_imbalances)
+
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 

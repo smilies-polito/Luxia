@@ -1,13 +1,8 @@
-
 import torch
-import torch.nn as nn
+from .beamsplitter import Beamsplitter
 
 
-# Select GPU if available, else fall back to CPU
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-class Cross(nn.Module):
+class Cross(Beamsplitter):
 
     """
     Two input - two output cross beamsplitter.
@@ -32,39 +27,19 @@ class Cross(nn.Module):
                  crosstalk: torch.Tensor = None
                  ):
         # Constructor of the Class Cross
-        super(Cross, self).__init__()
+        super(Cross, self).__init__(n_bs=n_crosses)
 
-        ones = torch.ones(1)
-        zeros = torch.zeros(1)
+        one = torch.tensor([1+0j])
+        zro = torch.tensor([0+0j])
 
-        mC = ones if i_loss is None else torch.sqrt(i_loss)
+        mC = one if i_loss is None else torch.sqrt(i_loss)
 
-        ct0 = mC * torch.sqrt(crosstalk) if crosstalk is not None else None
-        ct1 = mC * torch.sqrt(1 - crosstalk) if crosstalk is not None else None
+        ct0 = None if crosstalk is None else mC * torch.sqrt(crosstalk)
+        ct1 = None if crosstalk is None else mC * torch.sqrt(1 - crosstalk)
 
-        self._C_00 = zeros if crosstalk is None else mC * ct0
-        self._C_01 = ones if crosstalk is None else mC * ct1
-        self._C_10 = ones if crosstalk is None else mC * ct1
-        self._C_11 = zeros if crosstalk is None else mC * ct0
+        c00 = zro if crosstalk is None else mC * ct0
+        c01 = one if crosstalk is None else mC * ct1
+        c10 = one if crosstalk is None else mC * ct1
+        c11 = zro if crosstalk is None else mC * ct0
 
-    def forward(self, portA, portB):
-
-        y_0 = self._C_00 * portA + self._C_01 * portB
-        y_1 = self._C_10 * portA + self._C_11 * portB
-        return y_0, y_1
-
-    def get_tf_matrix(self):
-        if self.i_loss is None and self.imbalance is None:
-            tf_matrix = [torch.stack([
-                torch.tensor([self._C_00, self._C_01], dtype=torch.complex64),
-                torch.tensor([self._C_10, self._C_11], dtype=torch.complex64)
-            ])]*self.n_mmis
-        else:
-            tf_matrix = torch.stack(
-                [
-                    torch.stack([self._C_00, self._C_01], dim=-1),
-                    torch.stack([self._C_10, self._C_11], dim=-1)
-                ],
-                dim=-1
-            )
-        return tf_matrix
+        self.register_coefficients(c00, c01, c10, c11)

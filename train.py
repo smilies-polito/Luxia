@@ -11,7 +11,7 @@ from util.mem_usage import get_mem_usage
 from util.utils import load_dataset, expand_data_features, \
     generate_dataloader, train_epoch, val_epoch, plot_trend
 
-wandb.login(key="a2d765b3686313fdb440d0d239660d944e97da5f")
+# wandb.login(key="a2d765b3686313fdb440d0d239660d944e97da5f")
 
 if __name__ == '__main__':
 
@@ -60,18 +60,70 @@ if __name__ == '__main__':
 
     # Initialize the model
     # Check if the model include losses and imbalances
-    if args.mmi_imbalances:
+    mmi_imbalances = None
+    if args.imbalances != 0.0:
         print("[*] Loading MMI imbalances")
-        mmi_imbalances = torch.tensor(
-            np.load('mmi_imbalances.npy'), dtype=torch.float32)
-    else:
-        print("[*] None Loading MMI imbalances")
-        mmi_imbalances = None
+        if args.model == 'clements' or args.model == 'clements_bell':
+            from mmi_imbalances import get_mzi_fix_imbalances
+            mmi_imbalances = get_mzi_fix_imbalances(
+                args.n_networks, args.n_layers, n_inputs, args.imbalances)
+        elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
+            from mmi_imbalances import get_mmi_fix_imbalances
+            mmi_imbalances = get_mmi_fix_imbalances(
+                args.n_networks, args.n_layers, n_inputs, args.imbalances)
 
-    if args.mmi_i_losses:
-        mmi_i_losses = torch.tensor(np.load('mmi_i_losses.npy'))
-    else:
-        mmi_i_losses = None
+        print(" Network 0 Imbalances:")
+        print(mmi_imbalances[0])
+        print(" Network 1 Imbalances:")
+        print(mmi_imbalances[1])
+
+    if args.rnd_imbalances != 0.0:
+        print("[*] Loading random MMI imbalances")
+        if args.model == 'clements' or args.model == 'clements_bell':
+            from mmi_imbalances import get_mzi_rand_imbalances
+            mmi_imbalances = get_mzi_rand_imbalances(
+                args.n_networks, args.n_layers, n_inputs, args.rnd_imbalances)
+        elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
+            from mmi_imbalances import get_mmi_rand_imbalances
+            mmi_imbalances = get_mmi_rand_imbalances(
+                args.n_networks, args.n_layers, n_inputs, args.rnd_imbalances)
+
+        print(" Network 0 Imbalances:")
+        print(mmi_imbalances[0])
+        print(" Network 1 Imbalances:")
+        print(mmi_imbalances[1])
+
+    mmi_i_losses = None
+    if args.i_losses != 0.0:
+        print("[*] Loading MMI insertion losses")
+        if args.model == 'clements' or args.model == 'clements_bell':
+            from mmi_i_losses import get_mzi_fix_losses
+            mmi_i_losses = get_mzi_fix_losses(
+                args.n_networks, args.n_layers, n_inputs, args.i_losses)
+        elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
+            from mmi_i_losses import get_mmi_fix_losses
+            mmi_i_losses = get_mmi_fix_losses(
+                args.n_networks, args.n_layers, n_inputs, args.i_losses)
+        print(" Network 0 MMI Insertion Losses:")
+        print(mmi_i_losses[0])
+        print(" Network 1 MMI Insertion Losses:")
+        print(mmi_i_losses[1])
+
+    if args.rnd_i_losses != 0.0:
+        print("[*] Loading random MMI insertion losses")
+        if args.model == 'clements' or args.model == 'clements_bell':
+            from mmi_i_losses import get_mzi_rand_losses
+            mmi_i_losses = get_mzi_rand_losses(
+                args.n_networks, args.n_layers, n_inputs, args.rnd_i_losses)
+        elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
+            from mmi_i_losses import get_mmi_rand_losses
+            mmi_i_losses = get_mmi_rand_losses(
+                args.n_networks, args.n_layers, n_inputs, args.rnd_i_losses)
+
+        print(" Network 0 MMI Insertion Losses:")
+        print(mmi_i_losses[0])
+        print(" Network 1 MMI Insertion Losses:")
+        print(mmi_i_losses[1])
 
     if args.model == 'pt_clements':
         print("[*] setting enviroment for photontorch model")
@@ -95,7 +147,7 @@ if __name__ == '__main__':
 
     print(f"[*] Using {device} device")
 
-    wandb.init(project=args.model, config=args)
+    # wandb.init(project=args.model, config=args)
 
     model = init_model(
         name=args.model,
@@ -176,12 +228,12 @@ if __name__ == '__main__':
             dataloader=datal_val
         )
 
-        wandb.log({
-            'train_loss': avg_loss,
-            'val_loss': avg_vloss,
-            'train_acc': avg_acc,
-            'val_acc': avg_vacc,
-        })
+        # wandb.log({
+        #     'train_loss': avg_loss,
+        #     'val_loss': avg_vloss,
+        #     'train_acc': avg_acc,
+        #     'val_acc': avg_vacc,
+        # })
 
         avg_loss_list.append(avg_loss)
         avg_vloss_list.append(avg_vloss)
@@ -228,4 +280,4 @@ if __name__ == '__main__':
     print(f"Average epoch time: {np.mean(times)}")
     print()
     print("Training finished")
-    wandb.finish()
+    # wandb.finish()
