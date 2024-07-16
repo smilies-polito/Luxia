@@ -25,7 +25,6 @@ class Mzi(nn.Module):
 
         i_loss_0, i_loss_1 = self._check_if_losses(mmi_i_losses)
         imbalance_0, imbalance_1 = self._check_if_imbalanced(mmi_imbalances)
-
         self._mmi_0 = Mmi(n_mmis=n_mzi, i_loss=i_loss_0, imbalance=imbalance_0)
         self._mmi_1 = Mmi(n_mmis=n_mzi, i_loss=i_loss_1, imbalance=imbalance_1)
 
@@ -70,7 +69,7 @@ class Mzi(nn.Module):
         """
         if mmi_imbalances is None:
             return None, None
-        elif mmi_imbalances.shape[-1] == 1:
+        elif mmi_imbalances.shape[0] == 1:
             return mmi_imbalances, mmi_imbalances
         else:
             return mmi_imbalances[0], mmi_imbalances[1]
@@ -86,7 +85,7 @@ class Mzi(nn.Module):
         """
         if mmi_i_losses is None:
             return None, None
-        elif mmi_i_losses.shape[-1] == 1:
+        elif mmi_i_losses.shape[0] == 1:
             return mmi_i_losses, mmi_i_losses
         else:
             return mmi_i_losses[0], mmi_i_losses[1]

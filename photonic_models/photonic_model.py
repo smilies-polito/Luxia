@@ -34,24 +34,24 @@ class PhotonicModel(nn.Module):
                  n_networks: int = 2,
                  mmi_i_losses: [] = None,
                  mmi_imbalances: [] = None,
-                 is_fastforward: bool = False,
+                 is_matmul: bool = False,
                  ):
         super(PhotonicModel, self).__init__()
         self._n_networks = n_networks
 
-        if is_fastforward:
-            self.forward = self.fastForward
-            # list of components that will be used in the fastForward
-            # the order of the components is important. This list will be used
-            # in the sequential model
-            component_list = []
-        else:
+        if is_matmul:
             self.forward = self.matmulForward
             # list of modules that will be used in the matmulForward
             self._real_to_complex = nn.ModuleList()
             self._ph_architecture = nn.ModuleList()
             self._photodetectors = nn.ModuleList()
             self._electronic_functions = nn.ModuleList()
+        else:
+            self.forward = self.fastForward
+            # list of components that will be used in the fastForward
+            # the order of the components is important. This list will be used
+            # in the sequential model
+            component_list = []
 
         self.low_limit, self.upp_limit = self._getLimits(n_inputs, n_classes)
 
@@ -67,23 +67,23 @@ class PhotonicModel(nn.Module):
                     n_inputs=n_inputs,
                     mmi_i_losses=i_losses,
                     mmi_imbalances=imbalance,
-                    is_fastforward=is_fastforward
+                    is_matmul=is_matmul
                     )
             photodetectors = Photodetector()
             electronic_function = ElectronicFunction(n_inputs)
 
-            if is_fastforward:
-                component_list.append(real_to_complex)
-                component_list.append(ph_architecture)
-                component_list.append(photodetectors)
-                component_list.append(electronic_function)
-            else:
+            if is_matmul:
                 self._real_to_complex.append(real_to_complex)
                 self._ph_architecture.append(ph_architecture)
                 self._photodetectors.append(photodetectors)
                 self._electronic_functions.append(electronic_function)
+            else:
+                component_list.append(real_to_complex)
+                component_list.append(ph_architecture)
+                component_list.append(photodetectors)
+                component_list.append(electronic_function)
 
-        if is_fastforward:
+        if not is_matmul:
             self._ph_model = torch.nn.Sequential(*component_list)
 
     def fastForward(self, x_reals):

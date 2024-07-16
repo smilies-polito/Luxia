@@ -67,4 +67,3 @@ class SingleHeaterMzi(Mzi):
         )
 
         return tf_matrix
-

@@ -1,6 +1,23 @@
 import torch
 
 
+def alternating_tensors(tensor0: torch.tensor, tensor1: torch.tensor):
+    """
+    This function creates a tensor with the input tensors in alternated fashion
+    Args:
+        tensor0 (torch.tensor): Input tensor
+        tensor1 (torch.tensor): Input tensor
+
+    Returns:
+        torch.tensor: Tensor with the input tensors in alternated fashion
+    """
+    # return the elements in an alternative form
+    # (batch_size, size, 2)
+    stacked_vector = torch.stack([tensor0, tensor1], axis=2)
+    vec_tensor = stacked_vector.view(tensor0.shape[0], -1)
+    return vec_tensor
+
+
 def diag_matrix_alternating_tensors(tensor0: torch.tensor, tensor1: torch.tensor):
     """
     This function creates a diagonal matrix with the input tensors in

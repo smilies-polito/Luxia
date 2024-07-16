@@ -1,11 +1,12 @@
 import torch
-from torch import nn
+from .photonic_architecture import PhotonicBlock, PhotonicLayer
+from .photonic_architecture import PhotonicArchitecture
 from ..photonic_components.heater import Heater
 from ..photonic_components.beamsplitters.mmi import Mmi
 from ..util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
-class FldzhyanBlock(nn.Module):
+class FldzhyanBlock(PhotonicBlock):
     def __init__(self, n_blocks: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None
@@ -23,7 +24,7 @@ class FldzhyanBlock(nn.Module):
             mmi_i_losses: Tensor of insertion losses of the mmis
             mmi_imbalances: Tensor of the imbalances of the mmis
         """
-        super(FldzhyanBlock, self).__init__()
+        super(FldzhyanBlock, self).__init__(n_blocks=n_blocks)
         self._heater = Heater(n_heaters=n_blocks)
         self._mmi = Mmi(n_mmis=n_blocks,
                         i_loss=mmi_i_losses,
@@ -46,15 +47,7 @@ class FldzhyanBlock(nn.Module):
         outPs = self._heater(portsA)  # (batch_size, n_blocks)
         # (batch_size, n_blocks), (batch_size, n_blocks)
         y_0, y_1 = self._mmi(outPs, portsB)
-
-        # (batch_size, n_blocks, 2)
-        y_complex = torch.stack([y_0, y_1], axis=2)
-
-        # return the elements by alternating them
-        # (batch_size, 2*n_blocks)
-        y_complex = y_complex.view(y_0.shape[0], -1)
-
-        return y_complex
+        return y_0, y_1
 
     def getTFMatrix(self):
         # Get the transfer function matrix of the mmis
@@ -70,7 +63,7 @@ class FldzhyanBlock(nn.Module):
         return tf_matrix
 
 
-class FldzhyanLayer(nn.Module):
+class FldzhyanLayer(PhotonicLayer):
     """
       Fig. 1 Even number of Inputs
           a) Even Layer:      b) Odd Layer:
@@ -115,93 +108,25 @@ class FldzhyanLayer(nn.Module):
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None
                  ):
-        super(FldzhyanLayer, self).__init__()
-        self._n_inputs = n_inputs
-        self._is_even_layer = is_even_layer
-        self._n_blocks = n_inputs // 2
-        self._is_even_input = (self._n_inputs % 2 == 0)
-
-        if self._is_even_input and not self._is_even_layer:
-            self._n_blocks = self._n_blocks - 1
-
-        self._ph_blocks = FldzhyanBlock(
-            n_blocks=self._n_blocks,
+        # When the number of inputs is even and is an odd layer, the number
+        # of blocks is reduced by 1 otherwise the number of blocks is always
+        # half of the number of inputs
+        n_blks = n_inputs // 2
+        if (n_inputs % 2 == 0) and not is_even_layer:
+            n_blks = n_blks - 1
+        fldzhyan_block = FldzhyanBlock(
+            n_blocks=n_blks,
             mmi_i_losses=mmi_i_losses,
             mmi_imbalances=mmi_imbalances
         )
-
-    def forward(self, x_complex):
-        """
-        Args:
-            x_complex: input batch in complex numbers (batch_size, n_inputs)
-        Return:
-            y_complex: output batch (batch_size, n_inputs)
-        """
-        y_complex = torch.zeros_like(x_complex)
-        if self._is_even_input:
-            if self._is_even_layer:
-                # figure 1.a
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 1.b
-                # Pass to the output all the first elements
-                y_complex[:, 0] = x_complex[:, 0]
-                # Pass to the output all the last elements
-                y_complex[:, -1] = x_complex[:, - 1]
-                x_complex = x_complex[:, 1:-1]
-                # Create a tensor with all Bs (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all As (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:-1] = self._ph_blocks(x_complex_0, x_complex_1)
-        else:
-            if self._is_even_layer:
-                # figure 2.a
-                # Pass to the output all the last elements
-                y_complex[:, -1] = x_complex[:, - 1]
-                x_complex = x_complex[:, :-1]
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, :-1] = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 2.b
-                # Pass to the output all the first elements
-                y_complex[:, 0] = x_complex[:, 0]
-                x_complex = x_complex[:, 1:]
-                # Create a tensor with all Bs (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all As (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
-        return y_complex
-
-    def getTFMatrix(self):
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.getTFMatrix()
-            else:
-                tf_matrix = self._ph_blocks.getTFMatrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(ones, tf_matrix, ones)
-        else:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.getTFMatrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(tf_matrix, ones)
-            else:
-                tf_matrix = self._ph_blocks.getTFMatrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(ones, tf_matrix)
-        return tf_matrix
+        super(FldzhyanLayer, self).__init__(n_inputs=n_inputs,
+                                            is_even_layer=is_even_layer,
+                                            opt_ps=False,
+                                            photonic_block=fldzhyan_block
+                                            )
 
 
-class FldzhyanArchitecture(nn.Module):
+class FldzhyanArchitecture(PhotonicArchitecture):
     """ Create the photonic architecture of the Fldzhyan
 
         Fig. 1 Even number of inputs (n_inputs = 6) and n_layers = 8
@@ -248,21 +173,11 @@ class FldzhyanArchitecture(nn.Module):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: [] = None,
                  mmi_imbalances: [] = None,
-                 is_fastforward: bool = False
+                 is_matmul: bool = False
                  ):
-        super(FldzhyanArchitecture, self).__init__()
 
-        if is_fastforward:
-            layer_list = []
-        else:
-            self._layer_matrices = nn.ParameterList()
-
+        list_layers = []
         for i in range(n_layers):
-            # if mmi_imbalances is None:
-            #     imbalance = None
-            # else:
-            #     n_lay = len(mmi_imbalances)
-
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
@@ -273,31 +188,11 @@ class FldzhyanArchitecture(nn.Module):
                 mmi_imbalances=imbalance
             )
 
-            if is_fastforward:
-                layer_list.append(layer)
-            else:
-                self._layer_matrices.append(layer.getTFMatrix())
+            list_layers.append(layer)
 
-        if is_fastforward:
-            self._ph_layers = torch.nn.Sequential(*layer_list)
-
-    def forward(self, x_complex):
-        """
-        Args:
-            x_complex: input batch in complex numbers (batch_size, n_inputs)
-        """
-        return self._ph_layers(x_complex)
-
-    def get_tf_matrix(self):
-        # tf_matrix = None
-        # for layer in self._ph_layers:
-        #     if tf_matrix is None:
-        #         tf_matrix = layer.getTFMatrix()
-        #     else:
-        #         tf_matrix = torch.matmul(tf_matrix, layer.getTFMatrix())
-        tf_matrix = torch.linalg.multi_dot(
-            tuple(
-                [self._layer_matrices[i] for i in range(len(self._layer_matrices))]
-            )
+        super(FldzhyanArchitecture, self).__init__(
+            n_layers=n_layers,
+            n_inputs=n_inputs,
+            is_matmul=is_matmul,
+            layer_list=list_layers
         )
-        return tf_matrix

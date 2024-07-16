@@ -1,10 +1,12 @@
 import torch
-from torch import nn
 from ..photonic_components.heater import Heater
 from ..photonic_components.mzis.dual_heater import DualHeaterMzi
+from .photonic_architecture import PhotonicArchitecture, PhotonicLayer
+from .photonic_architecture import PhotonicBlock
+from ..util.util_functions import diag_matrix_alternating_tensors
 
 
-class ClementsBellBlock(nn.Module):
+class ClementsBellBlock(PhotonicBlock):
     """ Create the basic model of the clements architecture, the basic
         block is a phase shifter followed by a mzi module
 
@@ -27,24 +29,53 @@ class ClementsBellBlock(nn.Module):
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None
                  ):
-        super(ClementsBellBlock, self).__init__()
-        self._mzi = DualHeaterMzi(n_mzi=n_blocks,
+        super(ClementsBellBlock, self).__init__(n_blocks=n_blocks)
+        self._mzi = DualHeaterMzi(n_mzi=self._n_blocks,
                                   mmi_i_losses=mmi_i_losses,
                                   mmi_imbalances=mmi_imbalances)
 
     def forward(self, portsA, portsB):
-
         y_0, y_1 = self._mzi(portsA, portsB)
-        # return the elements in an alternative form
-        y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
-        return y_complex
+        return y_0, y_1
 
     def get_tf_matrix(self):
         tf_matrix = self._mzi.get_tf_matrix()
         return tf_matrix
 
 
-class ClementsBellLayer(nn.Module):
+class ClementsDualHeaterBlock(PhotonicBlock):
+    """ Create a basic block of 2 heaters for the clements bell architecture,
+        this block is used to create the first and last layer of the
+        architecture.
+            +-------+
+        A --|--[w]--|----C
+            |       |
+        B --|--[w]--|----D
+            +-------+
+
+        Args:
+        n_blocks: number of clements blocks to create dowsizes
+    """
+
+    def __init__(self, n_blocks: int):
+        super(ClementsDualHeaterBlock, self).__init__(n_blocks=n_blocks)
+        self._heater_0 = Heater(n_heaters=self._n_blocks)
+        self._heater_1 = Heater(n_heaters=self._n_blocks)
+
+    def forward(self, portsA, portsB):
+        y_0 = self._heater_0(portsA)
+        y_1 = self._heater_1(portsB)
+        return y_0, y_1
+
+    def get_tf_matrix(self):
+        phases_0 = self._heater_0.getPhases()
+        phases_1 = self._heater_1.getPhases()
+        phases = diag_matrix_alternating_tensors(phases_0, phases_1)
+        tf_matrix = torch.diag(phases)
+        return tf_matrix
+
+
+class ClementsBellLayer(PhotonicLayer):
     """
       Fig. 1 Even number of Inputs
           a) Even Layer:            b) Odd Layer:
@@ -80,6 +111,7 @@ class ClementsBellLayer(nn.Module):
                                     X       X
         A _____[w]______C       A -- --[w]-- ---D
                   wg
+
       Fig. 3 Start and last layer
              wg
         A -- --[w]-- ---C
@@ -93,7 +125,6 @@ class ClementsBellLayer(nn.Module):
         A -- --[w]-- ---C
 
         B -- --[w]-- ---D
-
     Args:
       n_inputs: number of inputs of the layer, from here it can be said
       if it is an even or and odd layer
@@ -106,159 +137,67 @@ class ClementsBellLayer(nn.Module):
 
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
+                 opt_ps: bool = False,
                  mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
+                 mmi_imbalances: torch.Tensor = None,
+                 is_heater_layer: bool = False
                  ):
-        super(ClementsBellLayer, self).__init__()
-        self._n_inputs = n_inputs
-        self._is_even_layer = is_even_layer
-        self._n_blocks = n_inputs // 2
-        self._is_even_input = False
-        # the number of heaters could be 0, 1 or 2
-        self._heaters = nn.ModuleList()
-
-        if self._n_inputs % 2 == 0:
-            self._is_even_input = True
-            # number of waveguides to create
-            nhts = 0
-            if self._is_even_layer is False:
-                self._n_blocks = self._n_blocks - 1
-                nhts = 2
+        if is_heater_layer:
+            clements_block = ClementsDualHeaterBlock(n_blocks=n_inputs // 2)
         else:
-            nhts = 1
+            # When the number of inputs is even and is an odd layer, the number
+            # of blocks is reduced by 1 otherwise the number of blocks is
+            # always half of the number of inputs
+            n_blks = n_inputs // 2
+            if (n_inputs % 2 == 0) and not is_even_layer:
+                n_blks = n_blks - 1
 
-        self._ph_blocks = ClementsBellBlock(
-            n_blocks=self._n_blocks,
-            mmi_i_losses=mmi_i_losses,
-            mmi_imbalances=mmi_imbalances
-        )
+            clements_block = ClementsBellBlock(
+                n_blocks=n_blks,
+                mmi_i_losses=mmi_i_losses,
+                mmi_imbalances=mmi_imbalances
+            )
 
-        # create the top and bottom heaters
-        for i in range(nhts):
-            self._heaters.append(Heater(1))
-
-    def forward(self, x_complex):
-        y_complex = torch.zeros_like(x_complex)
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
-                # figure 1.a
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 1.b
-                # Pass to through the top heater all the first elements
-                y_complex[:, 0] = self._heaters[0](x_complex[:, 0])
-                # Pass to the bottom heater all the last elements
-                y_complex[:, -1] = self._heaters[1](x_complex[:, - 1])
-                x_complex = x_complex[:, 1:-1]
-                # Create a tensor with all Bs (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all As (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:-1] = self._ph_blocks(x_complex_0, x_complex_1)
-        else:
-            if self._is_even_layer is True:
-                # figure 2.a
-                # Pass to the bottom heater all the last elements
-                y_complex[:, -1] = self._heaters[0](x_complex[:, - 1])
-                x_complex = x_complex[:, :-1]
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, :-1] = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 2.b
-                # Pass to through the top heater all the first elements
-                y_complex[:, 0] = self._heaters[0](x_complex[:, 0])
-                x_complex = x_complex[:, 1:]
-                # Create a tensor with all Bs (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all As (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
-        return y_complex
-
-    def get_tf_matrix(self):
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-            else:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                top_heater_phase = self._heaters[0].getPhases()
-                bottom_heater_phase = self._heaters[1].getPhases()
-                tf_matrix = torch.block_diag(
-                    top_heater_phase, tf_matrix, bottom_heater_phase
+        super(ClementsBellLayer, self).__init__(
+                n_inputs=n_inputs,
+                is_even_layer=is_even_layer,
+                opt_ps=opt_ps,
+                photonic_block=clements_block
                 )
-        else:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                bottom_heater_phase = self._heaters[0].getPhases()
-                tf_matrix = torch.block_diag(tf_matrix, bottom_heater_phase)
-            else:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                top_heater_phase = self._heaters[0].getPhases()
-                tf_matrix = torch.block_diag(top_heater_phase, tf_matrix)
-        return tf_matrix
 
 
-class ClementsBellArchitecture(nn.Module):
+class ClementsBellArchitecture(PhotonicArchitecture):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
-                 is_fastforward: bool = False
+                 is_matmul: bool = False
                  ):
-        super(ClementsBellArchitecture, self).__init__()
-        ph_first_layer = Heater(n_heaters=n_inputs)
-        ph_last_layer = Heater(n_heaters=n_inputs)
-        if is_fastforward:
-            layer_list = []
-            layer_list.append(ph_first_layer)
-        else:
-            self._n_layers = n_layers
-            self._ph_first_layer = ph_first_layer
-            self._layer_matrices = nn.ParameterList()
-            self._ph_last_layer = ph_last_layer
+        layer_list = []
+        layer_list.append(ClementsBellLayer(n_inputs=n_inputs,
+                                            is_even_layer=True,
+                                            opt_ps=True,
+                                            is_heater_layer=True))
 
-        for i in range(n_layers):
+        for i in range(n_layers - 2):
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
             layer = ClementsBellLayer(
                 n_inputs=n_inputs,
                 is_even_layer=(i % 2 == 0),
+                opt_ps=True,
                 mmi_i_losses=i_losses,
                 mmi_imbalances=imbalance
             )
+            layer_list.append(layer)
 
-            if is_fastforward:
-                layer_list.append(layer)
-            else:
-                self._layer_matrices.append(layer.get_tf_matrix())
+        layer_list.append(ClementsBellLayer(n_inputs=n_inputs,
+                                            is_even_layer=True,
+                                            opt_ps=True))
 
-        if is_fastforward:
-            layer_list.append(ph_last_layer)
-            self._ph_layers = torch.nn.Sequential(*layer_list)
-
-    def forward(self, x_complex):
-        return self._ph_layers(x_complex)
-
-    def get_tf_matrix(self):
-        first_layer_phases = self._ph_first_layer.getPhases()
-        first_layer_tf_matrix = torch.diag(first_layer_phases)
-        last_layer_phases = self._ph_last_layer.getPhases()
-        last_layer_tf_matrix = torch.diag(last_layer_phases)
-        tf_matrix_mid_layers = torch.linalg.multi_dot(
-            tuple(
-                [self._layer_matrices[i]
-                    for i in range(len(self._layer_matrices))
-                 ]
-            )
+        super(ClementsBellArchitecture, self).__init__(
+            n_layers=n_layers,
+            n_inputs=n_inputs,
+            is_matmul=is_matmul,
+            layer_list=layer_list
         )
-        tf_matrix = torch.linalg.multi_dot(
-            (first_layer_tf_matrix, tf_matrix_mid_layers, last_layer_tf_matrix)
-        )
-        return tf_matrix

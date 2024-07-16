@@ -16,7 +16,7 @@ class PhotonicArchitecture(nn.Module):
         n_inputs: number of inputs of the architecture
         mmi_i_losses: Tensor of insertion losses of the bs0 and bs1
         mmi_imbalances: Tensor of imbalances of the mmi0 and mmi1
-        is_fastforward: boolean to indicate if the model is fastforward
+        is_matmul: boolean to indicate if the model is fastforward
 
     """
     @staticmethod
@@ -26,7 +26,7 @@ class PhotonicArchitecture(nn.Module):
         n_inputs: int,
         mmi_i_losses: [] = None,
         mmi_imbalances: [] = None,
-        is_fastforward: bool = False
+        is_matmul: bool = False
     ):
         if name == 'fldzhyan':
             from .fldzhyan import FldzhyanArchitecture
@@ -35,7 +35,7 @@ class PhotonicArchitecture(nn.Module):
                 n_layers=n_layers,
                 mmi_i_losses=mmi_i_losses,
                 mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
+                is_matmul=is_matmul
             )
         elif name == 'clements':
             from .clements import ClementsArchitecture
@@ -44,7 +44,7 @@ class PhotonicArchitecture(nn.Module):
                 n_layers=n_layers,
                 mmi_i_losses=mmi_i_losses,
                 mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
+                is_matmul=is_matmul
             )
         elif name == 'fldzhyan_bell':
             from .fldzhyan_bell import FldzhyanBellArchitecture
@@ -53,7 +53,7 @@ class PhotonicArchitecture(nn.Module):
                 n_layers=n_layers,
                 mmi_i_losses=mmi_i_losses,
                 mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
+                is_matmul=is_matmul
             )
         elif name == 'clements_bell':
             from .clements_bell import ClementsBellArchitecture
@@ -62,7 +62,7 @@ class PhotonicArchitecture(nn.Module):
                 n_layers=n_layers,
                 mmi_i_losses=mmi_i_losses,
                 mmi_imbalances=mmi_imbalances,
-                is_fastforward=is_fastforward
+                is_matmul=is_matmul
             )
         else:
             raise ValueError('Unknown model: {}'.format(name))

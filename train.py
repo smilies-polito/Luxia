@@ -159,7 +159,7 @@ if __name__ == '__main__':
         capacity=args.capacity,
         mmi_i_losses=mmi_i_losses,
         mmi_imbalances=mmi_imbalances,
-        is_fastforward=args.is_fastforward
+        is_matmul=args.is_matmul
     ).to(device)
     os.makedirs(args.exp_dir, exist_ok=True)
     torch.save(model, os.path.join(args.exp_dir, f"model_epoch{0:03d}.pth"))

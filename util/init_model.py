@@ -11,7 +11,7 @@ def init_model(
     capacity: int = None,
     mmi_i_losses: torch.Tensor = None,
     mmi_imbalances: [] = None,
-    is_fastforward: bool = False
+    is_matmul: bool = False
 ) -> torch.nn.Module:
     """
     Initialize the model based on the name provided
@@ -25,7 +25,7 @@ def init_model(
         capacity (int): The capacity needed only for the photontorch model
         mmi_i_losses (torch.Tensor): losses of mmis or cross within the network
         mmi_imbalances (torch.Tensor): imbalances of mmi network
-        is_fastforward (bool): The fastforward parameter that is used in the
+        is_matmul (bool): The fastforward parameter that is used in the
         photonic model, it indicates if the model is fastforward or the
         traditional matrix multiplication
 
@@ -42,7 +42,7 @@ def init_model(
                              n_networks=n_networks,
                              mmi_i_losses=mmi_i_losses,
                              mmi_imbalances=mmi_imbalances,
-                             is_fastforward=is_fastforward,
+                             is_matmul=is_matmul,
                              )
     elif name == 'pt_clements':
         from pt_models.pt_clements_model import PtClementsModel

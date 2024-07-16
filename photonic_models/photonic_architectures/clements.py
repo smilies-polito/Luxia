@@ -1,11 +1,12 @@
 import torch
-from torch import nn
 from ..photonic_components.heater import Heater
 from ..photonic_components.mzis.single_heater import SingleHeaterMzi
 from ..util.util_functions import diag_matrix_alternating_tensor_with_ones
+from .photonic_architecture import PhotonicArchitecture, PhotonicLayer
+from .photonic_architecture import PhotonicBlock
 
 
-class ClementsBlock(nn.Module):
+class ClementsBlock(PhotonicBlock):
     """ Create the basic model of the clements architecture, the basic
         block is a phase shifter followed by a mzi module
 
@@ -27,7 +28,7 @@ class ClementsBlock(nn.Module):
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None
                  ):
-        super(ClementsBlock, self).__init__()
+        super(ClementsBlock, self).__init__(n_blocks=n_blocks)
         self._heater = Heater(n_heaters=n_blocks)
         self._mzi = SingleHeaterMzi(n_mzi=n_blocks,
                                     mmi_i_losses=mmi_i_losses,
@@ -36,10 +37,7 @@ class ClementsBlock(nn.Module):
     def forward(self, portsA, portsB):
         outPs = self._heater(portsA)
         y_0, y_1 = self._mzi(outPs, portsB)
-
-        # return the elements in an alternative form
-        y_complex = torch.stack([y_0, y_1], axis=2).view(y_0.shape[0], -1)
-        return y_complex
+        return y_0, y_1
 
     def get_tf_matrix(self):
         # Get the phases of the heaters wg0
@@ -54,11 +52,11 @@ class ClementsBlock(nn.Module):
         return tf_matrix
 
 
-class ClementsLayer(nn.Module):
+class ClementsLayer(PhotonicLayer):
     """
       Fig. 1 Even number of Inputs
           a) Even Layer:              b) Odd Layer:
-        A -[w]-- --[w]-- ---C       A _________________ C
+        A -[w]-- --[w]-- ---C       A ------------------C
                 X       X
         B ------ ------- ---D       B -[w]-- --[w]-- ---C
                                             X       X
@@ -68,12 +66,12 @@ class ClementsLayer(nn.Module):
                                             X       X
         A -[w]-- --[w]-- ---C       A ------ ------- ---D
                 X       X
-        B ------ ------- ---D       B _________________ C
+        B ------ ------- ---D       B ------------------C
 
         ========================================================
         Fig. 2 Odd number of Inputs
           a) Even Layer:              b) Odd Layer:
-        A -[w]-- --[w]-- ---C       A _________________ C
+        A -[w]-- --[w]-- ---C       A ------------------C
                 X       X
         B ------ ------- ---D       B -[w]-- --[w]-- ---C
                                             X       X
@@ -85,7 +83,7 @@ class ClementsLayer(nn.Module):
                 X       X
         B ------ ------- ---D       B -[w]-- --[w]-- ---C
                                             X       X
-        A _________________ C       A ------ ------- ---D
+        A ------------------C       A ------ ------- ---D
 
     Args:
       n_inputs: number of inputs of the layer, from here it can be said
@@ -99,145 +97,52 @@ class ClementsLayer(nn.Module):
 
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
+                 opt_ps: bool = False,
                  mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
+                 mmi_imbalances: torch.Tensor = None,
                  ):
-        super(ClementsLayer, self).__init__()
-        self._n_inputs = n_inputs
-        self._is_even_layer = is_even_layer
-        self._n_blocks = n_inputs // 2
-        self._is_even_input = False
 
-        if self._n_inputs % 2 == 0:
-            self._is_even_input = True
-            if self._is_even_layer is False:
-                self._n_blocks = self._n_blocks - 1
+        # When the number of inputs is even and is an odd layer, the number
+        # of blocks is reduced by 1 otherwise the number of blocks is always
+        # half of the number of inputs
+        n_blks = n_inputs // 2
+        if (n_inputs % 2 == 0) and not is_even_layer:
+            n_blks = n_blks - 1
 
-        self._ph_blocks = ClementsBlock(
-            n_blocks=self._n_blocks,
+        clements_block = ClementsBlock(
+            n_blocks=n_blks,
             mmi_i_losses=mmi_i_losses,
             mmi_imbalances=mmi_imbalances
         )
-
-    def forward(self, x_complex):
-        y_complex = torch.zeros_like(x_complex)
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
-                # figure 1.a
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 1.b
-                # Pass to the output all the first elements
-                y_complex[:, 0] = x_complex[:, 0]
-                # Pass to the output all the last elements
-                y_complex[:, -1] = x_complex[:, - 1]
-                x_complex = x_complex[:, 1:-1]
-                # Create a tensor with all Bs (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all As (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:-1] = self._ph_blocks(x_complex_0, x_complex_1)
-        else:
-            if self._is_even_layer is True:
-                # figure 2.a
-                # Pass to the output all the last elements
-                y_complex[:, -1] = x_complex[:, - 1]
-                x_complex = x_complex[:, :-1]
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, :-1] = self._ph_blocks(x_complex_0, x_complex_1)
-            else:
-                # figure 2.b
-                # Pass to the output all the first elements
-                y_complex[:, 0] = x_complex[:, 0]
-                x_complex = x_complex[:, 1:]
-                # Create a tensor with all As (x_complex_0)
-                x_complex_0 = x_complex[:, ::2]
-                # Create a tensor with all Bs (x_complex_1)
-                x_complex_1 = x_complex[:, 1::2]
-                y_complex[:, 1:] = self._ph_blocks(x_complex_0, x_complex_1)
-        return y_complex
-
-    def get_tf_matrix(self):
-        if self._is_even_input is True:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-            else:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(ones, tf_matrix, ones)
-        else:
-            if self._is_even_layer is True:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(tf_matrix, ones)
-            else:
-                tf_matrix = self._ph_blocks.get_tf_matrix()
-                ones = torch.ones(1)
-                tf_matrix = torch.block_diag(ones, tf_matrix)
-        return tf_matrix
+        super(ClementsLayer, self).__init__(n_inputs=n_inputs,
+                                            is_even_layer=is_even_layer,
+                                            opt_ps=opt_ps,
+                                            photonic_block=clements_block)
 
 
-class ClementsArchitecture(nn.Module):
+class ClementsArchitecture(PhotonicArchitecture):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
-                 is_fastforward: bool = False
+                 is_matmul: bool = False
                  ):
-        super(ClementsArchitecture, self).__init__()
 
-        if is_fastforward:
-            layer_list = []
-        else:
-            self._layer_matrices = nn.ParameterList()
-
+        list_layers = []
         for i in range(n_layers):
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
-            layer = ClementsLayer(
-                n_inputs=n_inputs,
-                is_even_layer=(i % 2 == 0),
-                mmi_i_losses=i_losses,
-                mmi_imbalances=imbalance
-            )
+            layer = ClementsLayer(n_inputs=n_inputs,
+                                  is_even_layer=(i % 2 == 0),
+                                  opt_ps=False,
+                                  mmi_i_losses=i_losses,
+                                  mmi_imbalances=imbalance)
 
-            if is_fastforward:
-                layer_list.append(layer)
-            else:
-                self._layer_matrices.append(layer.get_tf_matrix())
+            list_layers.append(layer)
 
-        if is_fastforward:
-            self._ph_layers = torch.nn.Sequential(*layer_list)
-
-    def forward(self, x_complex):
-
-        """
-        Args:
-            x_complex (): input batch of complex numbers (batch_size, n_inputs)
-
-        Returns:
-        """
-        return self._ph_layers(x_complex)
-
-    def get_tf_matrix(self):
-        # tf_matrix = None
-        # for layer in self._ph_layers:
-        #     if tf_matrix is None:
-        #         tf_matrix = layer.getTFMatrix()
-        #     else:
-        #         tf_matrix = torch.matmul(tf_matrix, layer.getTFMatrix())
-        tf_matrix = torch.linalg.multi_dot(
-            tuple(
-                [self._layer_matrices[i]
-                    for i in range(len(self._layer_matrices))
-                 ]
-            )
+        super(ClementsArchitecture, self).__init__(
+            n_layers=n_layers,
+            n_inputs=n_inputs,
+            is_matmul=is_matmul,
+            layer_list=list_layers
         )
-        return tf_matrix

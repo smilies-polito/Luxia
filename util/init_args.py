@@ -84,10 +84,10 @@ def init_args():
         'to the set value.'
     )
     parser.add_argument(
-        '--is_fastforward',
+        '--is_matmul',
         action=argparse.BooleanOptionalAction,
         help='The fastforward parameter that is used in the photonic model,'
-        'it indicates if the model is fastforward or the traditional matrix'
+        'it indicates if the model is matrix multiplication or fastforward.'
         'multiplication.'
     )
     args = parser.parse_args()
