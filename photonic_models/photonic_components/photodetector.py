@@ -15,6 +15,4 @@ class Photodetector(nn.Module):
         """
         real_squared_part = torch.square(torch.real(waveInput))
         imaginary_squared_part = torch.square(torch.imag(waveInput))
-        output = real_squared_part + imaginary_squared_part
-
-        return output
+        return real_squared_part + imaginary_squared_part

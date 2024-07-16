@@ -44,8 +44,7 @@ class SingleHeaterMzi(Mzi):
         """
         wave_0, wave_1 = self._mmi_0(portA, portB)
         outPs = self._heater(wave_0)
-        y_0, y_1 = self._mmi_1(outPs, wave_1)
-        return y_0, y_1
+        return self._mmi_1(outPs, wave_1)
 
     def get_tf_matrix(self) -> torch.Tensor:
         """

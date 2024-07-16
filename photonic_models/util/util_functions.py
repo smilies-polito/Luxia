@@ -30,9 +30,9 @@ def diag_matrix_alternating_tensors(tensor0: torch.tensor, tensor1: torch.tensor
         fashion
         """
     # Stack the tensors along a new dimension
-    stack_tensor = torch.stack((tensor0, tensor1), axis=1) # (n, 2)
+    stack_tensor = torch.stack((tensor0, tensor1), axis=1)  # (n, 2)
     # Reshape the stacked tensor to flatten it
-    vec_tensor = stack_tensor.view(-1) # (2*n,)
+    vec_tensor = stack_tensor.view(-1)  # (2*n,)
     # Create a diagonal matrix with the phases
     diag_matrix = torch.diag(vec_tensor)
     return diag_matrix
@@ -58,4 +58,3 @@ def diag_matrix_alternating_tensor_with_ones(tensor: torch.tensor):
     # Create a diagonal matrix with the phases
     diag_matrix = torch.diag(vec_tensor)
     return diag_matrix
-

@@ -39,8 +39,7 @@ class Mzi(nn.Module):
             Tuple[torch.Tensor, torch.Tensor]: Output tensors from the MZI.
         """
         wave_0, wave_1 = self._mmi_0(portA, portB)
-        y_0, y_1 = self._mmi_1(wave_0, wave_1)
-        return y_0, y_1
+        return self._mmi_1(wave_0, wave_1)
 
     def get_tf_matrix(self) -> torch.Tensor:
         """Get the transfer function matrix for the MZI.

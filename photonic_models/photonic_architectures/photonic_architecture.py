@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from ..util.util_functions import diag_matrix_alternating_tensor_with_ones, alternating_tensors
+from ..util.util_functions import alternating_tensors
 
 
 class PhotonicBlock(nn.Module):
@@ -169,32 +169,27 @@ class PhotonicLayer(nn.Module):
 
         self._ph_blocks = photonic_block
 
-    def forward(self, x_complex):
-        y_complex = torch.zeros_like(x_complex)
         if self._is_even_input is True:
             if self._is_even_layer is True:
-                y_complex = self._Even_Even(x_complex)
+                self.forward = self._Even_Even_Forward
             else:
-                y_complex = self._Even_Odd(x_complex)
+                self.forward = self._Even_Odd_Forward
         else:
             if self._is_even_layer is True:
-                y_complex = self._Odd_Even(x_complex)
+                self.forward = self._Odd_Even_Forward
             else:
-                y_complex = self._Odd_Odd(x_complex)
-        return y_complex
+                self.forward = self._Odd_Odd_Forward
 
-    def _Even_Even(self, x_complex):
+    def _Even_Even_Forward(self, x_complex):
         """
         Create the forward pass of the layer according to the Figure 1.A
         """
-        y_complex = torch.zeros_like(x_complex)
         x_complex_0 = x_complex[:, ::2]  # Get all A's (x_complex_0)
         x_complex_1 = x_complex[:, 1::2]  # Get all B's (x_complex_1)
         y_0, y_1 = self._ph_blocks(x_complex_0, x_complex_1)  # Get C's and D's
-        y_complex = alternating_tensors(y_0, y_1)  # Create the output tensor
-        return y_complex
+        return alternating_tensors(y_0, y_1)  # Create the output tensor
 
-    def _Even_Odd(self, x_complex):
+    def _Even_Odd_Forward(self, x_complex):
         """
         Create the forward pass of the layer according to the Figure 1.B
         """
@@ -216,7 +211,7 @@ class PhotonicLayer(nn.Module):
         y_complex[:, 1:-1] = alternating_tensors(y_0, y_1)
         return y_complex
 
-    def _Odd_Even(self, x_complex):
+    def _Odd_Even_Forward(self, x_complex):
         """
         Create the forward pass of the layer according to the Figure 2.A
         """
@@ -234,7 +229,7 @@ class PhotonicLayer(nn.Module):
         y_complex[:, :-1] = alternating_tensors(y_0, y_1)
         return y_complex
 
-    def _Odd_Odd(self, x_complex):
+    def _Odd_Odd_Forward(self, x_complex):
         """
         Create the forward pass of the layer according to the Figure 2.B
         """
@@ -282,15 +277,17 @@ class PhotonicArchitecture(nn.Module):
                 "layer_list must have the same number of layers as n_layers")
             exit(1)
 
-        if is_matmul:
-            self._layer_matrices = nn.ParameterList()
-            for i in range(n_layers):
-                self._layer_matrices.append(layer_list[i].get_tf_matrix())
-        elif layer_list is not None:
-            self._ph_layers = nn.Sequential(*layer_list)
-        else:
+        if layer_list is None:
             raise ValueError(
-                "layer_list must be provided if is_matmul is False")
+                "You must provide a list of PhotonicLayer objects")
+            exit(1)
+        else:
+            if is_matmul:
+                self._layer_matrices = nn.ParameterList()
+                for i in range(n_layers):
+                    self._layer_matrices.append(layer_list[i].get_tf_matrix())
+            else:
+                self._ph_layers = nn.Sequential(*layer_list)
 
     def forward(self, x_complex):
         """

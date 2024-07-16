@@ -36,8 +36,7 @@ class ClementsBlock(PhotonicBlock):
 
     def forward(self, portsA, portsB):
         outPs = self._heater(portsA)
-        y_0, y_1 = self._mzi(outPs, portsB)
-        return y_0, y_1
+        return self._mzi(outPs, portsB)
 
     def get_tf_matrix(self):
         # Get the phases of the heaters wg0
@@ -48,8 +47,8 @@ class ClementsBlock(PhotonicBlock):
         # Get the transfer function matrix of the mzi
         mzi_tf_matrix = self._mzi.get_tf_matrix()
         # Multiply the heater diagonal with the mzi transfer function matrix
-        tf_matrix = torch.matmul(heater_diag_matrix, mzi_tf_matrix)
-        return tf_matrix
+        return torch.matmul(heater_diag_matrix, mzi_tf_matrix)
+
 
 
 class ClementsLayer(PhotonicLayer):

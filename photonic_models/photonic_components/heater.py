@@ -16,8 +16,7 @@ class Heater(nn.Module):
         Return:
             waveOutput: (batch_size, n_heaters)
         """
-        waveOutput = waveInput * torch.exp(1.j*self.phase_shift)
-        return waveOutput
+        return waveInput * torch.exp(1.j*self.phase_shift)
 
     def getPhases(self):
         """
@@ -29,5 +28,4 @@ class Heater(nn.Module):
         Return:
             torch.tensor: phase shifts of the heaters
         """
-        weights = torch.exp(1.j*self.phase_shift)
-        return weights
+        return torch.exp(1.j*self.phase_shift)
