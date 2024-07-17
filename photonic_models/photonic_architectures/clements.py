@@ -50,7 +50,6 @@ class ClementsBlock(PhotonicBlock):
         return torch.matmul(heater_diag_matrix, mzi_tf_matrix)
 
 
-
 class ClementsLayer(PhotonicLayer):
     """
       Fig. 1 Even number of Inputs

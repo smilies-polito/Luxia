@@ -35,12 +35,10 @@ class ClementsBellBlock(PhotonicBlock):
                                   mmi_imbalances=mmi_imbalances)
 
     def forward(self, portsA, portsB):
-        y_0, y_1 = self._mzi(portsA, portsB)
-        return y_0, y_1
+        return self._mzi(portsA, portsB)
 
     def get_tf_matrix(self):
-        tf_matrix = self._mzi.get_tf_matrix()
-        return tf_matrix
+        return self._mzi.get_tf_matrix()
 
 
 class ClementsDualHeaterBlock(PhotonicBlock):
@@ -70,9 +68,7 @@ class ClementsDualHeaterBlock(PhotonicBlock):
     def get_tf_matrix(self):
         phases_0 = self._heater_0.getPhases()
         phases_1 = self._heater_1.getPhases()
-        phases = diag_matrix_alternating_tensors(phases_0, phases_1)
-        tf_matrix = torch.diag(phases)
-        return tf_matrix
+        return diag_matrix_alternating_tensors(phases_0, phases_1)
 
 
 class ClementsBellLayer(PhotonicLayer):

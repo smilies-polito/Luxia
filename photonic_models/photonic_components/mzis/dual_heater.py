@@ -55,11 +55,8 @@ class DualHeaterMzi(Mzi):
         Returns:
             torch.Tensor: Transfer function matrix.
         """
-        mmi_0_tf_matrices = self._mmi_0.get_tf_matrix()
-        mmi_1_tf_matrices = self._mmi_1.get_tf_matrix()
-        mmi_0_diag_matrix = torch.block_diag(*mmi_0_tf_matrices)
-        mmi_1_diag_matrix = torch.block_diag(*mmi_1_tf_matrices)
-
+        mmi_0_diag_matrix = self._mmi_0.get_tf_matrix()
+        mmi_1_diag_matrix = self._mmi_1.get_tf_matrix()
         heater_phases_0 = self._heater_0.getPhases()
         heater_phases_1 = self._heater_1.getPhases()
 
@@ -71,4 +68,3 @@ class DualHeaterMzi(Mzi):
             (mmi_0_diag_matrix, heater_diag_matrix, mmi_1_diag_matrix)
         )
         return tf_matrix
-

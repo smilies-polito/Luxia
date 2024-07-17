@@ -81,6 +81,8 @@ class Beamsplitter(nn.Module):
                 ],
                 dim=-1
             )
+        # Create a block diagonal matrix with the mmi tfunction matrices
+        tf_matrix = torch.block_diag(*tf_matrix)
         return tf_matrix
 
     def _check_if_coefficients_are_set(self):

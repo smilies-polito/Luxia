@@ -46,14 +46,12 @@ class FldzhyanBlock(PhotonicBlock):
         """
         outPs = self._heater(portsA)  # (batch_size, n_blocks)
         # (batch_size, n_blocks), (batch_size, n_blocks)
-        y_0, y_1 = self._mmi(outPs, portsB)
-        return y_0, y_1
+        return self._mmi(outPs, portsB)
 
-    def getTFMatrix(self):
+
+    def get_tf_matrix(self):
         # Get the transfer function matrix of the mmis
-        mmi_tf_matrices = self._mmi.get_tf_matrix()
-        # Create a block diagonal matrix with the mmi tfunction matrices
-        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
+        mmi_diag_matrix = self._mmi.get_tf_matrix()
         # Get the phases of the heaters
         heater_phases = self._heater.getPhases()
         # Create a diagonal matrix with the phases of the heaters
@@ -187,7 +185,6 @@ class FldzhyanArchitecture(PhotonicArchitecture):
                 mmi_i_losses=i_losses,
                 mmi_imbalances=imbalance
             )
-
             list_layers.append(layer)
 
         super(FldzhyanArchitecture, self).__init__(

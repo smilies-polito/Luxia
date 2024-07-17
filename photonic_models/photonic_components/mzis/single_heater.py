@@ -53,11 +53,8 @@ class SingleHeaterMzi(Mzi):
         Returns:
             torch.Tensor: Transfer function matrix.
         """
-        mmi_0_tf_matrices = self._mmi_0.get_tf_matrix()
-        mmi_1_tf_matrices = self._mmi_1.get_tf_matrix()
-        mmi_0_diag_matrix = torch.block_diag(*mmi_0_tf_matrices)
-        mmi_1_diag_matrix = torch.block_diag(*mmi_1_tf_matrices)
-
+        mmi_0_diag_matrix = self._mmi_0.get_tf_matrix()
+        mmi_1_diag_matrix = self._mmi_1.get_tf_matrix()
         heater_phases = self._heater.getPhases()
         heater_diag_matrix = diag_matrix_alternating_tensor_with_ones(heater_phases)
 

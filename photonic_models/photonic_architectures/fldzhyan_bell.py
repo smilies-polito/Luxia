@@ -31,14 +31,10 @@ class FldzhyanBellEvenBlock(PhotonicBlock):
                         imbalance=mmi_imbalances)
 
     def forward(self, portsA, portsB):
-        y_0, y_1 = self._mmi(portsA, portsB)
-        return y_0, y_1
+        return self._mmi(portsA, portsB)
 
     def get_tf_matrix(self):
-        mmi_tf_matrices = self._mmi.get_tf_matrix()
-        # Create a block diagonal matrix with the mmi tfunction matrices
-        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
-        return mmi_diag_matrix
+        return self._mmi.get_tf_matrix()
 
 
 class FldzhyanBellOddBlock(PhotonicBlock):
@@ -70,14 +66,10 @@ class FldzhyanBellOddBlock(PhotonicBlock):
     def forward(self, portsA, portsB):
         outPs_0 = self._heater_0(portsA)
         outPs_1 = self._heater_1(portsB)
-        y_0, y_1 = self._mmi(outPs_0, outPs_1)
-        return y_0, y_1
+        return self._mmi(outPs_0, outPs_1)
 
     def get_tf_matrix(self):
-        mmi_tf_matrices = self._mmi.get_tf_matrix()
-        # Create a block diagonal matrix with the mmi tfunction matrices
-        mmi_diag_matrix = torch.block_diag(*mmi_tf_matrices)
-
+        mmi_diag_matrix = self._mmi.get_tf_matrix()
         heater_phases_0 = self._heater_0.getPhases()
         heater_phases_1 = self._heater_1.getPhases()
         heater_diag_matrix = diag_matrix_alternating_tensors(
@@ -114,9 +106,7 @@ class FldzhyanDualHeaterBlock(PhotonicBlock):
     def get_tf_matrix(self):
         phases_0 = self._heater_0.getPhases()
         phases_1 = self._heater_1.getPhases()
-        phases = diag_matrix_alternating_tensors(phases_0, phases_1)
-        tf_matrix = torch.diag(phases)
-        return tf_matrix
+        return diag_matrix_alternating_tensors(phases_0, phases_1)
 
 
 class FldzhyanBellLayer(PhotonicLayer):
