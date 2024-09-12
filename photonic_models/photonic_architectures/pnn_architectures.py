@@ -1,8 +1,7 @@
-import torch
 import torch.nn as nn
 
 
-class PhotonicArchitecture(nn.Module):
+class PnnArchitectures(nn.Module):
     """Factory class to create the diffent photonic architectures.
     The architectures are:
     - fldzhyan

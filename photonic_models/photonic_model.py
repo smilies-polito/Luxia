@@ -1,28 +1,8 @@
 import torch
 import torch.nn as nn
-from .photonic_components.photodetector import Photodetector
-from .photonic_architectures.ph_architecture import PhotonicArchitecture
-
-
-class RealToComplex(nn.Module):
-    def __init__(self):
-        super(RealToComplex, self).__init__()
-
-    def forward(self, x_reals):
-        return torch.complex(x_reals, torch.zeros_like(x_reals))
-
-
-class ElectronicFunction(nn.Module):
-    def __init__(self, n_inputs: int):
-        super(ElectronicFunction, self).__init__()
-
-        self.diag_layer = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True)
-
-        self.bias = nn.Parameter(torch.rand(n_inputs), requires_grad=True)
-
-    def forward(self, x):
-        return x * self.diag_layer + self.bias
+from .photonic_architectures.pnn_architectures import PnnArchitectures
+from .electrical_to_optical import ElectricalToOptical
+from .optical_to_electrical import OpticalToElectrical
 
 
 class PhotonicModel(nn.Module):
@@ -41,14 +21,13 @@ class PhotonicModel(nn.Module):
 
         if is_matmul:
             self.forward = self.matmulForward
-            # list of modules that will be used in the matmulForward
-            self._real_to_complex = nn.ModuleList()
+            # list of submodules that will be used in the matmulForward
+            self._electrical_to_optical = nn.ModuleList()
             self._ph_architecture = nn.ModuleList()
-            self._photodetectors = nn.ModuleList()
-            self._electronic_functions = nn.ModuleList()
+            self._optical_to_electrical = nn.ModuleList()
         else:
             self.forward = self.fastForward
-            # list of components that will be used in the fastForward
+            # list of submodules that will be used in the fastForward
             # the order of the components is important. This list will be used
             # in the sequential model
             component_list = []
@@ -60,8 +39,8 @@ class PhotonicModel(nn.Module):
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
             # create the components of the model
-            real_to_complex = RealToComplex()
-            ph_architecture = PhotonicArchitecture.create_architecture(
+            electrical_to_optical = ElectricalToOptical()
+            ph_architecture = PnnArchitectures.create_architecture(
                     name=architecture_name,
                     n_layers=n_layers,
                     n_inputs=n_inputs,
@@ -69,19 +48,16 @@ class PhotonicModel(nn.Module):
                     mmi_imbalances=imbalance,
                     is_matmul=is_matmul
                     )
-            photodetectors = Photodetector()
-            electronic_function = ElectronicFunction(n_inputs)
+            optical_to_electrical = OpticalToElectrical(n_inputs)
 
             if is_matmul:
-                self._real_to_complex.append(real_to_complex)
+                self._electrical_to_optical.append(electrical_to_optical)
                 self._ph_architecture.append(ph_architecture)
-                self._photodetectors.append(photodetectors)
-                self._electronic_functions.append(electronic_function)
+                self._optical_to_electrical.append(optical_to_electrical)
             else:
-                component_list.append(real_to_complex)
+                component_list.append(electrical_to_optical)
                 component_list.append(ph_architecture)
-                component_list.append(photodetectors)
-                component_list.append(electronic_function)
+                component_list.append(optical_to_electrical)
 
         if not is_matmul:
             self._ph_model = torch.nn.Sequential(*component_list)
@@ -117,11 +93,10 @@ class PhotonicModel(nn.Module):
         Returns:
         """
         for i_ph in range(self._n_networks):
-            x_complex = self._real_to_complex[i_ph](x_reals)
+            x_complex = self._electrical_to_optical[i_ph](x_reals)
             tf_matrix = self._ph_architecture[i_ph].get_tf_matrix()
             y_complex = torch.matmul(x_complex, tf_matrix)
-            d = self._photodetectors[i_ph](y_complex)
-            x_reals = self._electronic_functions[i_ph](d)
+            x_reals = self._optical_to_electrical[i_ph](y_complex)
 
         y = x_reals[:, self.low_limit:self.upp_limit]
         return y

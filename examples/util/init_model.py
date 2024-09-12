@@ -8,7 +8,6 @@ def init_model(
     n_classes: int,
     n_layers: int = None,
     n_networks: int = 2,
-    capacity: int = None,
     mmi_i_losses: torch.Tensor = None,
     mmi_imbalances: [] = None,
     is_matmul: bool = False
@@ -22,7 +21,6 @@ def init_model(
         n_classes (int): The number of classes of the dataset
         n_layers (int): The number of layers
         n_networks (int): The number of photonic networks
-        capacity (int): The capacity needed only for the photontorch model
         mmi_i_losses (torch.Tensor): losses of mmis or cross within the network
         mmi_imbalances (torch.Tensor): imbalances of mmi network
         is_matmul (bool): The fastforward parameter that is used in the
@@ -44,26 +42,5 @@ def init_model(
                              mmi_imbalances=mmi_imbalances,
                              is_matmul=is_matmul,
                              )
-    elif name == 'pt_clements':
-        from pt_models.pt_clements_model import PtClementsModel
-        if capacity is None:
-            raise ValueError('Capacity is required for the PtClementsModel')
-        m = PtClementsModel(device=device,
-                            n_inputs=n_inputs,
-                            n_classes=n_classes,
-                            capacity=capacity,
-                            n_networks=n_networks
-                            )
-        return m
-    elif name == 'nx_rec_mesh':
-        from nx_models.nx_rec_mesh_model import NxRecMeshModel
-        m = NxRecMeshModel(device=device,
-                           n_inputs=n_inputs,
-                           n_layers=n_layers,
-                           n_classes=n_classes,
-                           capacity=capacity,
-                           n_architectures=n_networks
-                           )
-        return m
     else:
         raise ValueError('Unknown model: {}'.format(name))

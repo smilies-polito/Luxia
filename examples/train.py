@@ -1,16 +1,16 @@
-import wandb
+# TODO: delete wandb before publishing
+# import wandb
 import torch
 import numpy as np
-import photontorch
 import os
 import time
 
 from util.init_args import init_args
 from util.init_model import init_model
 from util.mem_usage import get_mem_usage
-from util.utils import load_dataset, expand_data_features, \
-    generate_dataloader, train_epoch, val_epoch, plot_trend
+from util.utils import load_dataset, expand_data_features, generate_dataloader, train_epoch, val_epoch, plot_trend
 
+# TODO: Uncomment the following line to login to wandb and delete before publishing
 # wandb.login(key="a2d765b3686313fdb440d0d239660d944e97da5f")
 
 if __name__ == '__main__':
@@ -20,12 +20,14 @@ if __name__ == '__main__':
     # Prepare the Data Set
     torch.manual_seed(args.seed)
 
+    # Load the dataset
     print(f"[*] Loading {args.dataset} dataset")
     data_train, labels_train, data_test, labels_test = load_dataset(
         args.dataset
     )
     print()
 
+    # Expand the data features
     n_features = data_train.shape[-1]
     n_inputs = args.n_inputs
     print(
@@ -36,6 +38,8 @@ if __name__ == '__main__':
     n_features = n_inputs
     print()
 
+    # Split the data into training and validation sets and
+    # generate the dataloaders
     print("[*] Splitting the data into training and validation"
           f"({int(args.val_frac*100):d}%) sets")
 
@@ -125,15 +129,12 @@ if __name__ == '__main__':
         print(" Network 1 MMI Insertion Losses:")
         print(mmi_i_losses[1])
 
-    if args.model == 'pt_clements':
-        print("[*] setting enviroment for photontorch model")
-        photontorch.set_environment(frequency_domain=True, enable_grad=True)
-
     n_classes = len(torch.unique(labels_train))
 
     print(f"[*] Initialize {args.model} model")
     print()
 
+    # Check if the device is available
     if args.device == 'cuda':
         if not torch.cuda.is_available():
             print("WARNING: CUDA is not available")
@@ -147,6 +148,7 @@ if __name__ == '__main__':
 
     print(f"[*] Using {device} device")
 
+    #TODO: Uncomment the following line to initialize wandb and delete before publishing
     # wandb.init(project=args.model, config=args)
 
     model = init_model(
@@ -156,7 +158,6 @@ if __name__ == '__main__':
         n_classes=n_classes,
         n_layers=args.n_layers,
         n_networks=args.n_networks,
-        capacity=args.capacity,
         mmi_i_losses=mmi_i_losses,
         mmi_imbalances=mmi_imbalances,
         is_matmul=args.is_matmul

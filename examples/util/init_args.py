@@ -44,8 +44,8 @@ def init_args():
     # Parameters for Photon_NN and Photontorch Models
     parser.add_argument(
         '--model', type=str, default='fldzhyan', required=True,
-        help="The model to be trained (fldzhyan, clements, pt_clements,"
-        " nx_rec_mesh). Deafult is fldzhyan"
+        help="The model to be trained (fldzhyan, clements, fldzhyan_bell,"
+        " clements_bell). Deafult is fldzhyan"
     )
     parser.add_argument(
         '--n_inputs', type=int, default=2, required=True,
@@ -54,17 +54,10 @@ def init_args():
     parser.add_argument(
         '--n_layers', type=int, default=2, required=False,
         help='The number of layers in the network. Default is 2.'
-        'this parameter is not needed in the photontorch clements model,'
-        'clements model within photontorch is NxN model'
     )
     parser.add_argument(
         '--n_networks', type=int, default=2, required=False,
         help='The number of photonic networks. Default is 2.'
-    )
-    parser.add_argument(
-        '--capacity', type=int, default=2, required=False,
-        help='The capacity of the photontorch network. Required only for the'
-        'photontorch model.'
     )
     parser.add_argument(
         '--imbalances', type=float, default=0.0, required=False,
