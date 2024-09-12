@@ -275,17 +275,13 @@ class PhotonicArchitecture(nn.Module):
         if len(layer_list) != n_layers:
             raise ValueError(
                 "layer_list must have the same number of layers as n_layers")
-            exit(1)
 
         if layer_list is None:
             raise ValueError(
                 "You must provide a list of PhotonicLayer objects")
-            exit(1)
         else:
             if is_matmul:
-                self._layer_matrices = nn.ParameterList()
-                for i in range(n_layers):
-                    self._layer_matrices.append(layer_list[i].get_tf_matrix())
+                self._layer_list = nn.ModuleList(layer_list)
             else:
                 self._ph_layers = nn.Sequential(*layer_list)
 
@@ -299,15 +295,11 @@ class PhotonicArchitecture(nn.Module):
         return self._ph_layers(x_complex)
 
     def get_tf_matrix(self):
-        if len(self._layer_matrices) == 1:
-            return self._layer_matrices[0]
+        if len(self._layer_list) == 1:
+            return self._layer_list[0].get_tf_matrix()
         else:
             tf_matrix = torch.linalg.multi_dot(
-                    tuple(
-                        [self._layer_matrices[i]
-                         for i in range(len(self._layer_matrices))
-                         ]
-                        )
-                    )
+                tuple([l.get_tf_matrix() for l in self._layer_list])
+            )
 
         return tf_matrix
