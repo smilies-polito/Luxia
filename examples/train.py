@@ -68,11 +68,11 @@ if __name__ == '__main__':
     if args.imbalances != 0.0:
         print("[*] Loading MMI imbalances")
         if args.model == 'clements' or args.model == 'clements_bell':
-            from mmi_imbalances import get_mzi_fix_imbalances
+            from util.mmi_imbalances import get_mzi_fix_imbalances
             mmi_imbalances = get_mzi_fix_imbalances(
                 args.n_networks, args.n_layers, n_inputs, args.imbalances)
         elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
-            from mmi_imbalances import get_mmi_fix_imbalances
+            from util.mmi_imbalances import get_mmi_fix_imbalances
             mmi_imbalances = get_mmi_fix_imbalances(
                 args.n_networks, args.n_layers, n_inputs, args.imbalances)
 
@@ -84,11 +84,11 @@ if __name__ == '__main__':
     if args.rnd_imbalances != 0.0:
         print("[*] Loading random MMI imbalances")
         if args.model == 'clements' or args.model == 'clements_bell':
-            from mmi_imbalances import get_mzi_rand_imbalances
+            from util.mmi_imbalances import get_mzi_rand_imbalances
             mmi_imbalances = get_mzi_rand_imbalances(
                 args.n_networks, args.n_layers, n_inputs, args.rnd_imbalances)
         elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
-            from mmi_imbalances import get_mmi_rand_imbalances
+            from util.mmi_imbalances import get_mmi_rand_imbalances
             mmi_imbalances = get_mmi_rand_imbalances(
                 args.n_networks, args.n_layers, n_inputs, args.rnd_imbalances)
 
@@ -101,11 +101,11 @@ if __name__ == '__main__':
     if args.i_losses != 0.0:
         print("[*] Loading MMI insertion losses")
         if args.model == 'clements' or args.model == 'clements_bell':
-            from mmi_i_losses import get_mzi_fix_losses
+            from util.mmi_i_losses import get_mzi_fix_losses
             mmi_i_losses = get_mzi_fix_losses(
                 args.n_networks, args.n_layers, n_inputs, args.i_losses)
         elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
-            from mmi_i_losses import get_mmi_fix_losses
+            from util.mmi_i_losses import get_mmi_fix_losses
             mmi_i_losses = get_mmi_fix_losses(
                 args.n_networks, args.n_layers, n_inputs, args.i_losses)
         print(" Network 0 MMI Insertion Losses:")
@@ -116,11 +116,11 @@ if __name__ == '__main__':
     if args.rnd_i_losses != 0.0:
         print("[*] Loading random MMI insertion losses")
         if args.model == 'clements' or args.model == 'clements_bell':
-            from mmi_i_losses import get_mzi_rand_losses
+            from util.mmi_i_losses import get_mzi_rand_losses
             mmi_i_losses = get_mzi_rand_losses(
                 args.n_networks, args.n_layers, n_inputs, args.rnd_i_losses)
         elif args.model == 'fldzhyan' or args.model == 'fldzhyan_bell':
-            from mmi_i_losses import get_mmi_rand_losses
+            from util.mmi_i_losses import get_mmi_rand_losses
             mmi_i_losses = get_mmi_rand_losses(
                 args.n_networks, args.n_layers, n_inputs, args.rnd_i_losses)
 

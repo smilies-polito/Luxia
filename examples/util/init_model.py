@@ -32,7 +32,7 @@ def init_model(
     """
 
     if name == 'fldzhyan' or name == 'fldzhyan_bell' or name == 'clements' or name == 'clements_bell':
-        from photonic_models.photonic_model import PhotonicModel
+        from photonnn import PhotonicModel
         return PhotonicModel(architecture_name=name,
                              n_inputs=n_inputs,
                              n_layers=n_layers,

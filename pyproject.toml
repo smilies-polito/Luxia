@@ -7,8 +7,6 @@ name = "photonnn"
 version = "0.0.1"
 requires-python = ">=3.9"
 dependencies = [
-  "numpy>=2.0",
-  "torch>=2.0",
 ]
 authors = [
   { name="Tzamn Melendez", email="tzamn@polito.it" },
