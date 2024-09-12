@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "photonnn"
+version = "0.0.1"
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=2.0",
+  "torch>=2.0",
+]
+authors = [
+  { name="Tzamn Melendez", email="tzamn@polito.it" },
+  { name="Marco P. Abrate", email="marco.abrate@ucl.ac.uk" },
+]
+description = "Photon Neural Networks"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["photonic"]
+
+[project.urls]
+Homepage = "https://gitlabtsgroup.polito.it/root/photonnn"
