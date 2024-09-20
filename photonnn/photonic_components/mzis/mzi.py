@@ -1,9 +1,9 @@
 import torch
-import torch.nn as nn
-from ..beamsplitters.mmi import Mmi
+from photonnn import PnnModule
+from photonnn.photonic_components.beamsplitters.mmi import Mmi
 
 
-class Mzi(nn.Module):
+class Mzi(PnnModule):
     """
     Mach-Zehnder Interferometer implemented with 2 beam splitters.
 

@@ -1,9 +1,8 @@
 import torch
-from ..photonic_components.heater import Heater
-from ..photonic_components.mzis.single_heater import SingleHeaterMzi
-from ..util.util_functions import diag_matrix_alternating_tensor_with_ones
-from .photonic_architecture import PhotonicArchitecture, PhotonicLayer
-from .photonic_architecture import PhotonicBlock
+from photonnn.photonic_components.heater import Heater
+from photonnn.photonic_components.mzis.single_heater import SingleHeaterMzi
+from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones
+from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
 
 
 class ClementsBlock(PhotonicBlock):
@@ -118,7 +117,7 @@ class ClementsLayer(PhotonicLayer):
                                             photonic_block=clements_block)
 
 
-class ClementsArchitecture(PhotonicArchitecture):
+class ClementsMesh(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
@@ -138,7 +137,7 @@ class ClementsArchitecture(PhotonicArchitecture):
 
             list_layers.append(layer)
 
-        super(ClementsArchitecture, self).__init__(
+        super(ClementsMesh, self).__init__(
             n_layers=n_layers,
             n_inputs=n_inputs,
             is_matmul=is_matmul,

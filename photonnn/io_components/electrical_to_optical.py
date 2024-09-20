@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from photonnn import PnnModule
 
 
-class ElectricalToOptical(nn.Module):
+class ElectricalToOptical(PnnModule):
     def __init__(self):
         super(ElectricalToOptical, self).__init__()
 

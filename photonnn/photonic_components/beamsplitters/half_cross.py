@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from photonnn import PnnModule
 
 
-class HalfCross(nn.Module):
+class HalfCross(PnnModule):
 
     """
     Two input - two output cross beamsplitter.

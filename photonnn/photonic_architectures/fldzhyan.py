@@ -1,9 +1,8 @@
 import torch
-from .photonic_architecture import PhotonicBlock, PhotonicLayer
-from .photonic_architecture import PhotonicArchitecture
-from ..photonic_components.heater import Heater
-from ..photonic_components.beamsplitters.mmi import Mmi
-from ..util.util_functions import diag_matrix_alternating_tensor_with_ones
+from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
+from photonnn.photonic_components.heater import Heater
+from photonnn.photonic_components.beamsplitters.mmi import Mmi
+from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
 class FldzhyanBlock(PhotonicBlock):
@@ -124,7 +123,7 @@ class FldzhyanLayer(PhotonicLayer):
                                             )
 
 
-class FldzhyanArchitecture(PhotonicArchitecture):
+class FldzhyanArchitecture(PhotonicMesh):
     """ Create the photonic architecture of the Fldzhyan
 
         Fig. 1 Even number of inputs (n_inputs = 6) and n_layers = 8

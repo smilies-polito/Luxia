@@ -1,9 +1,8 @@
 import torch
-from .photonic_architecture import PhotonicBlock, PhotonicLayer
-from .photonic_architecture import PhotonicArchitecture
-from ..photonic_components.heater import Heater
-from ..photonic_components.beamsplitters.mmi import Mmi
-from ..util.util_functions import diag_matrix_alternating_tensors
+from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
+from photonnn.photonic_components.heater import Heater
+from photonnn.photonic_components.beamsplitters.mmi import Mmi
+from photonnn.util.util_functions import diag_matrix_alternating_tensors
 
 
 class FldzhyanBellEvenBlock(PhotonicBlock):
@@ -204,7 +203,7 @@ class FldzhyanBellLayer(PhotonicLayer):
         )
 
 
-class FldzhyanBellArchitecture(PhotonicArchitecture):
+class FldzhyanBellArchitecture(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,

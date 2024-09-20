@@ -153,7 +153,6 @@ if __name__ == '__main__':
 
     model = init_model(
         name=args.model,
-        device=device,
         n_inputs=n_inputs,
         n_classes=n_classes,
         n_layers=args.n_layers,

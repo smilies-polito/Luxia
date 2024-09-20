@@ -1,9 +1,8 @@
 import torch
-from ..photonic_components.heater import Heater
-from ..photonic_components.mzis.dual_heater import DualHeaterMzi
-from .photonic_architecture import PhotonicArchitecture, PhotonicLayer
-from .photonic_architecture import PhotonicBlock
-from ..util.util_functions import diag_matrix_alternating_tensors
+from photonnn.photonic_components.heater import Heater
+from photonnn.photonic_components.mzis.dual_heater import DualHeaterMzi
+from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
+from photonnn.util.util_functions import diag_matrix_alternating_tensors
 
 
 class ClementsBellBlock(PhotonicBlock):
@@ -162,7 +161,7 @@ class ClementsBellLayer(PhotonicLayer):
                 )
 
 
-class ClementsBellArchitecture(PhotonicArchitecture):
+class ClementsBellArchitecture(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,

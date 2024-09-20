@@ -1,7 +1,7 @@
 import torch
-from .mzi import Mzi
-from ..heater import Heater
-from ...util.util_functions import diag_matrix_alternating_tensor_with_ones
+from photonnn.photonic_components.mzis.mzi import Mzi
+from photonnn.photonic_components.heater import Heater
+from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
 class SingleHeaterMzi(Mzi):

@@ -1,9 +1,11 @@
 import torch
 from torch import nn
-from ..util.util_functions import alternating_tensors
+from photonnn import PnnModule
+from photonnn.photonic_components import Heater
+from photonnn.util.util_functions import alternating_tensors
 
 
-class PhotonicBlock(nn.Module):
+class PhotonicBlock(PnnModule):
     """ Create the basic block model of the architecture, This is the
         abstract Class of the photonic architecture this class has the
         basic structure of the architecture that is repeated in the
@@ -91,7 +93,7 @@ class PhotonicBlock(nn.Module):
         pass
 
 
-class PhotonicLayer(nn.Module):
+class PhotonicLayer(PnnModule):
     """
     Abstract class that creates a layer of the photonic architecture as shown
     in the following figures depending on the number of inputs and the type of
@@ -160,7 +162,7 @@ class PhotonicLayer(nn.Module):
 
         # Create the heaters if the optional phase shifter is True
         if self._opt_ps is True:
-            from ..photonic_components.heater import Heater
+            # from photonnn.photonic_components import Heater
             if self._is_even_input is True:
                 if self._is_even_layer is not True:
                     self._heater = nn.ModuleList([Heater(1), Heater(1)])
@@ -266,12 +268,12 @@ class PhotonicLayer(nn.Module):
         return tf_matrix
 
 
-class PhotonicArchitecture(nn.Module):
+class PhotonicMesh(PnnModule):
     def __init__(self, n_layers: int, n_inputs: int,
                  is_matmul: bool = False,
                  layer_list: [PhotonicLayer] = None
                  ):
-        super(PhotonicArchitecture, self).__init__()
+        super(PhotonicMesh, self).__init__()
         if len(layer_list) != n_layers:
             raise ValueError(
                 "layer_list must have the same number of layers as n_layers")
@@ -282,6 +284,7 @@ class PhotonicArchitecture(nn.Module):
         else:
             if is_matmul:
                 self._layer_list = nn.ModuleList(layer_list)
+                self.forward = self.matmul_forward
             else:
                 self._ph_layers = nn.Sequential(*layer_list)
 
@@ -293,6 +296,17 @@ class PhotonicArchitecture(nn.Module):
         Returns:
         """
         return self._ph_layers(x_complex)
+
+    def matmul_forward(self, x_complex):
+        """
+        Args:
+            x_complex (): input batch of complex numbers (batch_size, n_inputs)
+
+        Returns:
+        """
+        tf_matrix = self.get_tf_matrix()
+        x_complex = torch.matmul(x_complex, tf_matrix)
+        return x_complex
 
     def get_tf_matrix(self):
         if len(self._layer_list) == 1:

@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from photonnn import PnnModule
 
 
-class Beamsplitter(nn.Module):
+class Beamsplitter(PnnModule):
     """Class for a beamsplitter. A beamsplitter is a device that splits an
     input beam of light into two output beams. The model follows the following
 

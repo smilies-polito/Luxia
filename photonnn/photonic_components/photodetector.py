@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from photonnn import PnnModule
 
 
-class Photodetector(nn.Module):
+class Photodetector(PnnModule):
     def __init__(self):
         super(Photodetector, self).__init__()
 

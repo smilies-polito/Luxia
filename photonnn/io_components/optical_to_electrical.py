@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
-from .photonic_components.photodetector import Photodetector
+from photonnn.photonic_components import Photodetector
+from photonnn import PnnModule
 
 
-class OpticalToElectrical(nn.Module):
+class OpticalToElectrical(PnnModule):
     def __init__(self, n_inputs: int):
         super(OpticalToElectrical, self).__init__()
 

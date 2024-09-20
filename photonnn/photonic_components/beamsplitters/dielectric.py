@@ -1,5 +1,5 @@
 import torch
-from .beamsplitter import Beamsplitter
+from photonnn.photonic_components.beamsplitters.beamsplitter import Beamsplitter
 
 
 class Dielectric(Beamsplitter):
