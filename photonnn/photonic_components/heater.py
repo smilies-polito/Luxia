@@ -4,7 +4,7 @@ from photonnn import PnnModule
 
 
 class Heater(PnnModule):
-    def __init__(self, n_heaters: int):
+    def __init__(self, n_heaters: int = 1):
         super(Heater, self).__init__()
         phi = 2*torch.pi*torch.rand(n_heaters)
         self.phase_shift = nn.Parameter(phi, requires_grad=True)

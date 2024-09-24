@@ -11,7 +11,7 @@ class Beamsplitter(PnnModule):
         are_coeff_set: flag to check if coefficients have been set
     """
 
-    def __init__(self, n_bs: int):
+    def __init__(self, n_bs: int = 1):
         """Constructor for the Beamsplitter class."""
         super(Beamsplitter, self).__init__()
         self.n_bs = n_bs

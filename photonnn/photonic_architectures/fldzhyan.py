@@ -47,7 +47,6 @@ class FldzhyanBlock(PhotonicBlock):
         # (batch_size, n_blocks), (batch_size, n_blocks)
         return self._mmi(outPs, portsB)
 
-
     def get_tf_matrix(self):
         # Get the transfer function matrix of the mmis
         mmi_diag_matrix = self._mmi.get_tf_matrix()
@@ -123,7 +122,7 @@ class FldzhyanLayer(PhotonicLayer):
                                             )
 
 
-class FldzhyanArchitecture(PhotonicMesh):
+class FldzhyanMesh(PhotonicMesh):
     """ Create the photonic architecture of the Fldzhyan
 
         Fig. 1 Even number of inputs (n_inputs = 6) and n_layers = 8
@@ -186,7 +185,7 @@ class FldzhyanArchitecture(PhotonicMesh):
             )
             list_layers.append(layer)
 
-        super(FldzhyanArchitecture, self).__init__(
+        super(FldzhyanMesh, self).__init__(
             n_layers=n_layers,
             n_inputs=n_inputs,
             is_matmul=is_matmul,

@@ -26,7 +26,7 @@ class PhotonicBlock(PnnModule):
         n_blocks: number of clements blocks to create dowsizes
     """
 
-    def __init__(self, n_blocks: int):
+    def __init__(self, n_blocks: int = 1):
         """
         Constructor of the Class PhotonicBlock
         Here it is define the internal structure of the block,
@@ -269,7 +269,7 @@ class PhotonicLayer(PnnModule):
 
 
 class PhotonicMesh(PnnModule):
-    def __init__(self, n_layers: int, n_inputs: int,
+    def __init__(self, n_inputs: int, n_layers: int,
                  is_matmul: bool = False,
                  layer_list: [PhotonicLayer] = None
                  ):
@@ -277,16 +277,12 @@ class PhotonicMesh(PnnModule):
         if len(layer_list) != n_layers:
             raise ValueError(
                 "layer_list must have the same number of layers as n_layers")
-
         if layer_list is None:
             raise ValueError(
                 "You must provide a list of PhotonicLayer objects")
-        else:
-            if is_matmul:
-                self._layer_list = nn.ModuleList(layer_list)
-                self.forward = self.matmul_forward
-            else:
-                self._ph_layers = nn.Sequential(*layer_list)
+        if is_matmul:
+            self.forward = self.matmul_forward
+        self._ph_layers = nn.Sequential(*layer_list)
 
     def forward(self, x_complex):
         """
@@ -309,11 +305,11 @@ class PhotonicMesh(PnnModule):
         return x_complex
 
     def get_tf_matrix(self):
-        if len(self._layer_list) == 1:
-            return self._layer_list[0].get_tf_matrix()
+        if len(self._ph_layers) == 1:
+            return self._ph_layers[0].get_tf_matrix()
         else:
             tf_matrix = torch.linalg.multi_dot(
-                tuple([l.get_tf_matrix() for l in self._layer_list])
+                tuple([l.get_tf_matrix() for l in self._ph_layers])
             )
 
         return tf_matrix

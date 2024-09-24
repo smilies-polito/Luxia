@@ -118,7 +118,7 @@ class ClementsLayer(PhotonicLayer):
 
 
 class ClementsMesh(PhotonicMesh):
-    def __init__(self, n_layers: int, n_inputs: int,
+    def __init__(self, n_inputs: int, n_layers: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
                  is_matmul: bool = False

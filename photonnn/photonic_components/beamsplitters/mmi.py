@@ -19,7 +19,7 @@ class Mmi(Beamsplitter):
     """
 
     def __init__(self,
-                 n_mmis: int,
+                 n_mmis: int = 1,
                  i_loss: torch.Tensor = None,
                  imbalance: torch.Tensor = None
                  ):

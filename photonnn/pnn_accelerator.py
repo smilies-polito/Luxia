@@ -6,13 +6,10 @@ import torch.nn as nn
 class PnnAccelerator(nn.Module):
     def __init__(self,
                  n_inputs: int,
-                 n_layers: int,
                  n_classes: int,
-                 n_networks: int = 2,
                  pnn_module_list: [PnnModule] = None,
                  ):
         super(PnnAccelerator, self).__init__()
-        self._n_networks = n_networks
         self.low_limit, self.upp_limit = self._getLimits(n_inputs, n_classes)
         self._ph_model = torch.nn.Sequential(*pnn_module_list)
 

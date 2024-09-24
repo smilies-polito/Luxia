@@ -1,19 +1,18 @@
 import torch
-import torch.nn as nn
-from photonnn.photonic_components import Photodetector
 from photonnn import PnnModule
 
 
 class OpticalToElectrical(PnnModule):
-    def __init__(self, n_inputs: int):
+    def __init__(self):
         super(OpticalToElectrical, self).__init__()
 
-        self.photodetectors = Photodetector()
-        self.diag_layer = nn.Parameter(
-            torch.rand(n_inputs), requires_grad=True)
-
-        self.bias = nn.Parameter(torch.rand(n_inputs), requires_grad=True)
-
     def forward(self, x_complex):
-        x_reals = self.photodetectors(x_complex)
-        return x_reals * self.diag_layer + self.bias
+        """
+        Args:
+            x_complex: complex numbers (batch_size, n_inputs)
+        Return:
+            output: output batch, real numbers (batch_size, n_inputs)
+        """
+        real_squared_part = torch.square(torch.real(x_complex))
+        imaginary_squared_part = torch.square(torch.imag(x_complex))
+        return real_squared_part + imaginary_squared_part

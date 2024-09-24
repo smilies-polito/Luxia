@@ -27,7 +27,7 @@ class MyPhMeshAccelerator(pnn.PnnAccelerator):
                 mmi_imbalances=imbalance,
                 is_matmul=is_matmul
             )
-            optical_to_electrical = io.OpticalToElectrical(n_inputs)
+            optical_to_electrical = pnn_list.append(io.OE_PDB(n_inputs))
 
             pnn_list.append(electrical_to_optical)
             pnn_list.append(ph_mesh)
@@ -35,7 +35,6 @@ class MyPhMeshAccelerator(pnn.PnnAccelerator):
 
         super(MyPhMeshAccelerator, self).__init__(
             n_inputs=n_inputs,
-            n_layers=n_layers,
             n_classes=n_classes,
             n_networks=n_networks,
             pnn_module_list=pnn_list

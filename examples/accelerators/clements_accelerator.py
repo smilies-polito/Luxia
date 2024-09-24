@@ -29,12 +29,11 @@ class ClementsAccelerator(pnn.PnnAccelerator):
                 is_matmul=is_matmul
             )
             pnn_list.append(ph_mesh)
-            pnn_list.append(io.OpticalToElectrical(n_inputs))
+            pnn_list.append(io.OE_PDB(n_inputs))
 
         # call the PnnAccelerator constructor
         super(ClementsAccelerator, self).__init__(
             n_inputs=n_inputs,
-            n_layers=n_layers,
             n_classes=n_classes,
             n_networks=n_networks,
             pnn_module_list=pnn_list
