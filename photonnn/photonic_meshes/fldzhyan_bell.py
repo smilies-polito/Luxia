@@ -203,7 +203,7 @@ class FldzhyanBellLayer(PhotonicLayer):
         )
 
 
-class FldzhyanBellArchitecture(PhotonicMesh):
+class FldzhyanBellMesh(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
@@ -233,7 +233,7 @@ class FldzhyanBellArchitecture(PhotonicMesh):
                                             is_even_layer=True,
                                             opt_ps=True,
                                             is_heater_layer=True))
-        super(FldzhyanBellArchitecture, self).__init__(
+        super(FldzhyanBellMesh, self).__init__(
             n_layers=n_layers,
             n_inputs=n_inputs,
             is_matmul=is_matmul,

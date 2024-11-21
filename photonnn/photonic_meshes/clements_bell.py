@@ -161,7 +161,7 @@ class ClementsBellLayer(PhotonicLayer):
                 )
 
 
-class ClementsBellArchitecture(PhotonicMesh):
+class ClementsBellMesh(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
                  mmi_i_losses: torch.Tensor = None,
                  mmi_imbalances: torch.Tensor = None,
@@ -190,7 +190,7 @@ class ClementsBellArchitecture(PhotonicMesh):
                                             is_even_layer=True,
                                             opt_ps=True))
 
-        super(ClementsBellArchitecture, self).__init__(
+        super(ClementsBellMesh, self).__init__(
             n_layers=n_layers,
             n_inputs=n_inputs,
             is_matmul=is_matmul,

@@ -1,6 +1,6 @@
 import photonnn as pnn
 import photonnn.io_components as io
-import costume_mesh.my_ph_mesh as ph_arch
+import costume_mesh.my_ph_mesh as my_msh
 
 
 class MyPhMeshAccelerator(pnn.PnnAccelerator):
@@ -20,7 +20,7 @@ class MyPhMeshAccelerator(pnn.PnnAccelerator):
 
             # create the components of the model and append them to the list
             electrical_to_optical = io.ElectricalToOptical()
-            ph_mesh = ph_arch.MyCostumeMesh(
+            ph_mesh = my_msh.MyCostumeMesh(
                 n_layers=n_layers,
                 n_inputs=n_inputs,
                 mmi_i_losses=i_losses,

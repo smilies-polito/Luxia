@@ -1,4 +1,4 @@
-from photonnn.photonic_architectures import PhotonicLayer, ClementsBlock
+from photonnn.photonic_meshes import PhotonicLayer, ClementsBlock
 
 my_block = ClementsBlock(n_blocks=4)
 

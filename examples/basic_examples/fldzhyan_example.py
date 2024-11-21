@@ -1,5 +1,4 @@
-# Import photonnn and from it photonic_architectures and io_components
-import photonnn.photonic_architectures as ph_arch
+import photonnn.photonic_meshes as ph_arch
 
 # Create a photonic mesh
 ph_mesh = ph_arch.FldzhyanMesh(n_inputs=4, n_layers=4, is_matmul=False)

@@ -1,5 +1,5 @@
 import photonnn as pnn
-from photonnn import photonic_architectures as ph_arch
+from photonnn import photonic_meshes as msh
 from photonnn import io_components as io
 
 
@@ -20,7 +20,7 @@ class FldzhyanAccelerator(pnn.PnnAccelerator):
 
             # create the components of the model and append them to the list
             pnn_list.append(io.ElectricalToOptical())
-            ph_mesh = ph_arch.FldzhyanMesh(
+            ph_mesh = msh.FldzhyanMesh(
                 n_layers=n_layers,
                 n_inputs=n_inputs,
                 mmi_i_losses=i_losses,

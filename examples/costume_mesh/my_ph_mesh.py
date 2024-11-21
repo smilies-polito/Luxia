@@ -1,8 +1,8 @@
 import torch
 
-from photonnn.photonic_architectures import PhotonicBlock
-from photonnn.photonic_architectures import PhotonicLayer
-from photonnn.photonic_architectures import PhotonicMesh
+from photonnn.photonic_meshes import PhotonicBlock
+from photonnn.photonic_meshes import PhotonicLayer
+from photonnn.photonic_meshes import PhotonicMesh
 from photonnn.photonic_components.heater import Heater
 from photonnn.photonic_components.beamsplitters.mmi import Mmi
 from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones

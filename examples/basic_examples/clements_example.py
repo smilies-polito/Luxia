@@ -2,7 +2,7 @@
 import torch
 import photonnn as pnn
 import photonnn.io_components as io
-import photonnn.photonic_architectures as ph_arch
+import photonnn.photonic_meshes as ph_arch
 
 # Define the number of inputs and layers of the ClementsMesh
 n_in = 8
