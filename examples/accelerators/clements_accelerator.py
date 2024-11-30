@@ -31,10 +31,10 @@ class ClementsAccelerator(lx.LxAccelerator):
             lx_list.append(ph_mesh)
             lx_list.append(io.OE_PDB(n_inputs))
 
-        # call the PnnAccelerator constructor
+        # call the LxAccelerator constructor
         super(ClementsAccelerator, self).__init__(
             n_inputs=n_inputs,
             n_classes=n_classes,
             n_networks=n_networks,
-            pnn_module_list=lx_list
+            lx_module_list=lx_list
         )

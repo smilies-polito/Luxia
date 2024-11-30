@@ -162,7 +162,7 @@ class PhotonicLayer(LxModule):
 
         # Create the heaters if the optional phase shifter is True
         if self._opt_ps is True:
-            # from photonnn.photonic_components import Heater
+            # from luxia.photonic_components import Heater
             if self._is_even_input is True:
                 if self._is_even_layer is not True:
                     self._heater = nn.ModuleList([Heater(1), Heater(1)])
