@@ -1,17 +1,17 @@
-from .pnn_module import PnnModule
+from .lx_module import LxModule
 import torch
 import torch.nn as nn
 
 
-class PnnAccelerator(nn.Module):
+class LxAccelerator(nn.Module):
     def __init__(self,
                  n_inputs: int,
                  n_classes: int,
-                 pnn_module_list: [PnnModule] = None,
+                 lx_module_list: [LxModule] = None,
                  ):
-        super(PnnAccelerator, self).__init__()
+        super(LxAccelerator, self).__init__()
         self.low_limit, self.upp_limit = self._getLimits(n_inputs, n_classes)
-        self._ph_model = torch.nn.Sequential(*pnn_module_list)
+        self._ph_model = torch.nn.Sequential(*lx_module_list)
 
     def forward(self, x_reals):
         """

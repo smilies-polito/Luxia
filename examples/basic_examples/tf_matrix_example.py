@@ -1,8 +1,8 @@
 import torch
-from photonnn.photonic_components.beamsplitters import Mmi
-from photonnn.photonic_components import Heater
-from photonnn.photonic_meshes import PhotonicBlock
-from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones
+from luxia.photonic_components.beamsplitters import Mmi
+from luxia.photonic_components import Heater
+from luxia.photonic_meshes import PhotonicBlock
+from luxia.util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
 # Create a custom block that uses the Heater and Mmi PhotonicComponents

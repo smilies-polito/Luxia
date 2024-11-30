@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-from photonnn import PnnModule
+from luxia import LxModule
 
 
-class Heater(PnnModule):
+class Heater(LxModule):
     def __init__(self, n_heaters: int = 1):
         super(Heater, self).__init__()
         phi = 2*torch.pi*torch.rand(n_heaters)

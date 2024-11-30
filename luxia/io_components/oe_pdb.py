@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from photonnn.photonic_components import Photodetector
-from photonnn.io_components import OpticalToElectrical
+from luxia.photonic_components import Photodetector
+from luxia.io_components import OpticalToElectrical
 
 
 class OE_PDB(OpticalToElectrical):

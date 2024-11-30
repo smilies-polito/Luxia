@@ -1,8 +1,8 @@
 import torch
-from photonnn import PnnModule
+from luxia import LxModule
 
 
-class HalfCross(PnnModule):
+class HalfCross(LxModule):
 
     """
     Two input - two output cross beamsplitter.

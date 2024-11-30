@@ -1,4 +1,4 @@
-import photonnn.io_components as io
+import luxia.io_components as io
 
 # Create a electrical to optical module
 electrical_to_optical = io.ElectricalToOptical()

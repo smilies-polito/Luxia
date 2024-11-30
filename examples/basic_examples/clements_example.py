@@ -1,8 +1,8 @@
-# Import photonnn and from it photonic_architectures and io_components
+# Import luxia and from it import photonic_meshes and io_components
 import torch
-import photonnn as pnn
-import photonnn.io_components as io
-import photonnn.photonic_meshes as ph_arch
+import luxia as lx
+import luxia.io_components as io
+import luxia.photonic_meshes as msh
 
 # Define the number of inputs and layers of the ClementsMesh
 n_in = 8
@@ -13,14 +13,14 @@ n_clss = 3
 # Create a electrical to optical module
 electrical_to_optical = io.ElectricalToOptical()
 # Create a photonic mesh
-ph_mesh = ph_arch.ClementsMesh(n_inputs=n_in, n_layers=n_lay, is_matmul=False)
+ph_mesh = msh.ClementsMesh(n_inputs=n_in, n_layers=n_lay, is_matmul=False)
 # Create a optical to electrical module
 optical_to_electrical = io.OpticalToElectrical()
 
 # Create the accelerator
-my_accelerator = pnn.PnnAccelerator(
+my_accelerator = lx.LxAccelerator(
     n_inputs=n_in, n_classes=n_clss,
-    pnn_module_list=[electrical_to_optical, ph_mesh, optical_to_electrical]
+    lx_module_list=[electrical_to_optical, ph_mesh, optical_to_electrical]
 )
 
 # Create a random input tensor

@@ -1,11 +1,11 @@
 import torch
 
-from photonnn.photonic_meshes import PhotonicBlock
-from photonnn.photonic_meshes import PhotonicLayer
-from photonnn.photonic_meshes import PhotonicMesh
-from photonnn.photonic_components.heater import Heater
-from photonnn.photonic_components.beamsplitters.mmi import Mmi
-from photonnn.util.util_functions import diag_matrix_alternating_tensor_with_ones
+from luxia.photonic_meshes import PhotonicBlock
+from luxia.photonic_meshes import PhotonicLayer
+from luxia.photonic_meshes import PhotonicMesh
+from luxia.photonic_components.heater import Heater
+from luxia.photonic_components.beamsplitters.mmi import Mmi
+from luxia.util.util_functions import diag_matrix_alternating_tensor_with_ones
 
 
 class MyCostumBlock(PhotonicBlock):

@@ -1,4 +1,4 @@
-from photonnn.photonic_meshes import PhotonicMesh, FldzhyanLayer
+from luxia.photonic_meshes import PhotonicMesh, FldzhyanLayer
 
 list_layers = []
 for i in range(8):

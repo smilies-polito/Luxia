@@ -1,9 +1,9 @@
-import photonnn as pnn
-import photonnn.io_components as io
+import luxia as lx
+import luxia.io_components as io
 import costume_mesh.my_ph_mesh as my_msh
 
 
-class MyPhMeshAccelerator(pnn.PnnAccelerator):
+class MyPhMeshAccelerator(lx.LxAccelerator):
     def __init__(self,
                  n_inputs: int,
                  n_layers: int,
@@ -13,7 +13,7 @@ class MyPhMeshAccelerator(pnn.PnnAccelerator):
                  mmi_imbalances: [] = None,
                  is_matmul: bool = False,
                  ):
-        pnn_list = []
+        lx_list = []
         for i in range(n_networks):
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
@@ -27,15 +27,15 @@ class MyPhMeshAccelerator(pnn.PnnAccelerator):
                 mmi_imbalances=imbalance,
                 is_matmul=is_matmul
             )
-            optical_to_electrical = pnn_list.append(io.OE_PDB(n_inputs))
+            optical_to_electrical = lx_list.append(io.OE_PDB(n_inputs))
 
-            pnn_list.append(electrical_to_optical)
-            pnn_list.append(ph_mesh)
-            pnn_list.append(optical_to_electrical)
+            lx_list.append(electrical_to_optical)
+            lx_list.append(ph_mesh)
+            lx_list.append(optical_to_electrical)
 
         super(MyPhMeshAccelerator, self).__init__(
             n_inputs=n_inputs,
             n_classes=n_classes,
             n_networks=n_networks,
-            pnn_module_list=pnn_list
+            lx_module_list=lx_list
         )

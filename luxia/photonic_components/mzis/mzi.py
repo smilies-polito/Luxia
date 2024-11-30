@@ -1,9 +1,9 @@
 import torch
-from photonnn import PnnModule
-from photonnn.photonic_components.beamsplitters.mmi import Mmi
+from luxia import LxModule
+from luxia.photonic_components.beamsplitters.mmi import Mmi
 
 
-class Mzi(PnnModule):
+class Mzi(LxModule):
     """
     Mach-Zehnder Interferometer implemented with 2 beam splitters.
 

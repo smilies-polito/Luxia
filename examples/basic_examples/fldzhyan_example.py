@@ -1,7 +1,7 @@
-import photonnn.photonic_meshes as ph_arch
+import luxia.photonic_meshes as msh
 
 # Create a photonic mesh
-ph_mesh = ph_arch.FldzhyanMesh(n_inputs=4, n_layers=4, is_matmul=False)
+ph_mesh = msh.FldzhyanMesh(n_inputs=4, n_layers=4, is_matmul=False)
 
 # Create a random input tensor
 transfer_matrix = ph_mesh.get_tf_matrix()

@@ -1,11 +1,11 @@
 import torch
 from torch import nn
-from photonnn import PnnModule
-from photonnn.photonic_components import Heater
-from photonnn.util.util_functions import alternating_tensors
+from luxia import LxModule
+from luxia.photonic_components import Heater
+from luxia.util.util_functions import alternating_tensors
 
 
-class PhotonicBlock(PnnModule):
+class PhotonicBlock(LxModule):
     """ Create the basic block model of the architecture, This is the
         abstract Class of the photonic architecture this class has the
         basic structure of the architecture that is repeated in the
@@ -93,7 +93,7 @@ class PhotonicBlock(PnnModule):
         pass
 
 
-class PhotonicLayer(PnnModule):
+class PhotonicLayer(LxModule):
     """
     Abstract class that creates a layer of the photonic architecture as shown
     in the following figures depending on the number of inputs and the type of
@@ -268,7 +268,7 @@ class PhotonicLayer(PnnModule):
         return tf_matrix
 
 
-class PhotonicMesh(PnnModule):
+class PhotonicMesh(LxModule):
     def __init__(self, n_inputs: int, n_layers: int,
                  is_matmul: bool = False,
                  layer_list: [PhotonicLayer] = None

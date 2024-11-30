@@ -1,8 +1,8 @@
 import torch
-from photonnn import PnnModule
+from luxia import LxModule
 
 
-class Beamsplitter(PnnModule):
+class Beamsplitter(LxModule):
     """Class for a beamsplitter. A beamsplitter is a device that splits an
     input beam of light into two output beams. The model follows the following
 

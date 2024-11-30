@@ -1,8 +1,8 @@
 import torch
-from photonnn import PnnModule
+from luxia import LxModule
 
 
-class OpticalToElectrical(PnnModule):
+class OpticalToElectrical(LxModule):
     def __init__(self):
         super(OpticalToElectrical, self).__init__()
 

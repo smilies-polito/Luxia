@@ -1,8 +1,8 @@
 import torch
-from photonnn import PnnModule
+from luxia import LxModule
 
 
-class Photodetector(PnnModule):
+class Photodetector(LxModule):
     def __init__(self):
         super(Photodetector, self).__init__()
 

@@ -1,6 +1,6 @@
-# PhotonNN - Photonic Neural Networks
+# LuxIA - Photonic Neural Networks
 ## Overview
-PhotonNN is a Python package for simulating photonic large-scale neural networks. The package is
+LuxIA is a Python package for simulating photonic large-scale neural networks. The package is
 designed to be modular and extensible, allowing users to easily define and simulate a wide range of
 photonic neural network architectures. The package is built on top of the
 [PyTorch](https://pytorch.org/) deep learning framework, and is designed to be compatible with
@@ -10,11 +10,11 @@ PyTorch's neural network modules.
 For now, the package is not available on PyPI, so you will need to install it from source. To do so,
 clone the repository and run the following command in the root directory of the repository:
 ```bash
-git clone https://gitlabtsgroup.polito.it/root/photonnn.git 
+git clone https://gitlabtsgroup.polito.it/root/luxia.git 
 ```
 Enter your credentials and then move to the cloned repository:
 ```bash
-cd photonnn
+cd luxia
 ```
 Then run the following command:
 ```bash
@@ -27,9 +27,9 @@ pip install -e .
 ```
 
 ## Getting Started
-To get started with PhotonNN, you can check out the examples in the `examples` directory. And you
+To get started with LuxIA, you can check out the examples in the `examples` directory. And you
 can try to run the run_train.sh script to train a simple photonic neural network. To do so, go to
-photonnn/examples and run the following command:
+luxia/examples and run the following command:
 
 ```bash
 ./run_train.sh
@@ -48,7 +48,7 @@ Fldzhyan Bell. You can run those examples by commenting and uncommenting the des
 run_train.sh
 ### Basic Examples
 On the examples/basic_examples directory, you will find different examples for creating different
-and instanciating different types of photonin meshes, creating different types of photonic blocks,
+and instantiating different types of photonic meshes, creating different types of photonic blocks,
 etc. To run those examples, you can directly run the desired example for example, for running the
 clements_example.py, you can run the following command:
 ```bash

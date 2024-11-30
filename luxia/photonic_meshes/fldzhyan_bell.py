@@ -1,8 +1,8 @@
 import torch
 from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
-from photonnn.photonic_components.heater import Heater
-from photonnn.photonic_components.beamsplitters.mmi import Mmi
-from photonnn.util.util_functions import diag_matrix_alternating_tensors
+from luxia.photonic_components.heater import Heater
+from luxia.photonic_components.beamsplitters.mmi import Mmi
+from luxia.util.util_functions import diag_matrix_alternating_tensors
 
 
 class FldzhyanBellEvenBlock(PhotonicBlock):

@@ -1,9 +1,9 @@
-import photonnn as pnn
-from photonnn import photonic_meshes as msh
-from photonnn import io_components as io
+import luxia as lx
+from luxia import photonic_meshes as msh
+from luxia import io_components as io
 
 
-class ClementsAccelerator(pnn.PnnAccelerator):
+class ClementsAccelerator(lx.LxAccelerator):
     def __init__(self,
                  n_inputs: int,
                  n_layers: int,
@@ -13,13 +13,13 @@ class ClementsAccelerator(pnn.PnnAccelerator):
                  mmi_imbalances: [] = None,
                  is_matmul: bool = False,
                  ):
-        pnn_list = []
+        lx_list = []
         for i in range(n_networks):
             i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
             imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
 
             # create the components of the model and append them to the list
-            pnn_list.append(io.ElectricalToOptical())
+            lx_list.append(io.ElectricalToOptical())
 
             ph_mesh = msh.ClementsMesh(
                 n_layers=n_layers,
@@ -28,13 +28,13 @@ class ClementsAccelerator(pnn.PnnAccelerator):
                 mmi_imbalances=imbalance,
                 is_matmul=is_matmul
             )
-            pnn_list.append(ph_mesh)
-            pnn_list.append(io.OE_PDB(n_inputs))
+            lx_list.append(ph_mesh)
+            lx_list.append(io.OE_PDB(n_inputs))
 
         # call the PnnAccelerator constructor
         super(ClementsAccelerator, self).__init__(
             n_inputs=n_inputs,
             n_classes=n_classes,
             n_networks=n_networks,
-            pnn_module_list=pnn_list
+            pnn_module_list=lx_list
         )

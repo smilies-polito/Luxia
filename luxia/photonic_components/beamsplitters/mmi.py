@@ -1,5 +1,5 @@
 import torch
-from photonnn.photonic_components.beamsplitters.beamsplitter import Beamsplitter
+from luxia.photonic_components.beamsplitters.beamsplitter import Beamsplitter
 
 
 class Mmi(Beamsplitter):
