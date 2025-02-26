@@ -27,3 +27,5 @@ my_accelerator = lx.LxAccelerator(
 x = torch.rand(1, n_in)
 # Perform the forward pass
 y = my_accelerator(x)
+# Print the output
+print(y)
