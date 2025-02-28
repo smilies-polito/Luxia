@@ -36,6 +36,5 @@ class MyPhMeshAccelerator(lx.LxAccelerator):
         super(MyPhMeshAccelerator, self).__init__(
             n_inputs=n_inputs,
             n_classes=n_classes,
-            n_networks=n_networks,
             lx_module_list=lx_list
         )
