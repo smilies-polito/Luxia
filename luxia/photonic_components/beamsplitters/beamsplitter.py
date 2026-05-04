@@ -1,5 +1,7 @@
 import torch
 from luxia import LxModule
+from luxia.params import BeamsplitterParams
+import copy
 
 
 class Beamsplitter(LxModule):
@@ -7,15 +9,15 @@ class Beamsplitter(LxModule):
     input beam of light into two output beams. The model follows the following
 
     Attributes:
-        n_bs: number of beamsplitters, to set one after the other downsides
-        are_coeff_set: flag to check if coefficients have been set
+        bs_params (dataclass): Dataclass containing the parameters of the
+        beamsplitter.
     """
 
-    def __init__(self, n_bs: int = 1):
+    def __init__(self, bs_params: BeamsplitterParams):
         """Constructor for the Beamsplitter class."""
         super(Beamsplitter, self).__init__()
-        self.n_bs = n_bs
-        self.are_coeff_set = False
+        self._params = copy.deepcopy(bs_params)
+        self._are_coeff_set = False
 
     def forward(self, portA: torch.Tensor, portB: torch.Tensor):
         """Forward pass through the beamsplitter.
@@ -56,7 +58,7 @@ class Beamsplitter(LxModule):
         self.register_buffer('_C_01', c01)
         self.register_buffer('_C_10', c10)
         self.register_buffer('_C_11', c11)
-        self.are_coeff_set = True
+        self._are_coeff_set = True
 
     def get_tf_matrix(self):
         """Get the transfer function matrix for the beamsplitter.
@@ -66,13 +68,19 @@ class Beamsplitter(LxModule):
         """
         self._check_if_coefficients_are_set()
 
-        if self._C_00.shape[-1] == 1:
-            tf_matrix = [
-                torch.stack(
-                        [torch.tensor([self._C_00, self._C_01]),
-                         torch.tensor([self._C_10, self._C_11])]
-                )
-            ]*self.n_bs
+        if self._C_00.numel() == 1:
+            c00 = self._C_00.squeeze()
+            c01 = self._C_01.squeeze()
+            c10 = self._C_10.squeeze()
+            c11 = self._C_11.squeeze()
+
+            tf_block = torch.stack(
+                [
+                    torch.stack([c00, c01]),
+                    torch.stack([c10, c11])
+                ]
+            )
+            tf_matrix = [tf_block] * self._params.num_splitters
         else:
             tf_matrix = torch.stack(
                 [
@@ -81,13 +89,14 @@ class Beamsplitter(LxModule):
                 ],
                 dim=-1
             )
+
         # Create a block diagonal matrix with the mmi tfunction matrices
         tf_matrix = torch.block_diag(*tf_matrix)
         return tf_matrix
 
     def _check_if_coefficients_are_set(self):
         """Check if the coefficients have been set."""
-        if not self.are_coeff_set:
+        if not self._are_coeff_set:
             raise ValueError(
                     "Coefficients have not been set. Please call: "
                     "register_coefficients' in your constructor to set the "

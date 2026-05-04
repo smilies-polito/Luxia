@@ -1,5 +1,6 @@
 import torch
 from luxia.photonic_components.beamsplitters.beamsplitter import Beamsplitter
+from luxia.params import BsCrossParams
 
 
 class Cross(Beamsplitter):
@@ -21,16 +22,15 @@ class Cross(Beamsplitter):
             cross type beamsplitter
     """
 
-    def __init__(self,
-                 n_crosses: int,
-                 i_loss: torch.Tensor = None,
-                 crosstalk: torch.Tensor = None
-                 ):
+    def __init__(self, cross_params: BsCrossParams):
         # Constructor of the Class Cross
-        super(Cross, self).__init__(n_bs=n_crosses)
+        super(Cross, self).__init__(bs_params=cross_params)
 
         one = torch.tensor([1+0j])
         zro = torch.tensor([0+0j])
+
+        i_loss = self._params.i_loss
+        crosstalk = self._params.crosstalk
 
         mC = one if i_loss is None else torch.sqrt(i_loss)
 
