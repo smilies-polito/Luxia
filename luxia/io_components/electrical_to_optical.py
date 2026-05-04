@@ -8,7 +8,7 @@ class ElectricalToOptical(LxModule):
 
     def forward(self, x_reals):
         x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
-        if self.debug:
+        if self._debug:
             print(" - EO input: ", x_reals)
             print(" - EO output: ", x_complex)
         return x_complex
