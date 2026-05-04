@@ -38,7 +38,7 @@ def diag_matrix_alternating_tensors(tensor0: torch.tensor, tensor1: torch.tensor
     return diag_matrix
 
 
-def diag_matrix_alternating_tensor_with_ones(tensor: torch.tensor):
+def diag_matrix_alternating_tensor_with_ones(tensor: torch.Tensor):
     """
     This function creates a diagonal matrix with the input tensor and
     alternates the diagonal with ones.
@@ -49,12 +49,22 @@ def diag_matrix_alternating_tensor_with_ones(tensor: torch.tensor):
         torch.tensor: Diagonal matrix with the input tensor and alternated
         with ones
     """
+    # Copy device/dtype from input
+    device = tensor.device
+    dtype = tensor.dtype
+
     # Create a vector of ones with the same size as the phases
     vec_ones = torch.ones_like(tensor)
+
     # Stack the tensors along a new dimension
     stack_tensor = torch.stack((tensor, vec_ones), dim=1)
+
     # Reshape the stacked tensor to flatten it
     vec_tensor = stack_tensor.view(-1)
-    # Create a diagonal matrix with the phases
-    diag_matrix = torch.diag(vec_tensor)
+
+    # Build diagonal matrix manually (avoids any device surprises)
+    n = vec_tensor.numel()
+    diag_matrix = torch.zeros(n, n, device=device, dtype=dtype)
+    torch.diagonal(diag_matrix, dim1=0, dim2=1).copy_(vec_tensor)
+
     return diag_matrix
