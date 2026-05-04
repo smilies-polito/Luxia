@@ -1,8 +1,10 @@
-import torch
-from luxia.photonic_components.heater import Heater
-from luxia.photonic_components.mzis.dual_heater import DualHeaterMzi
-from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
 from luxia.util.util_functions import diag_matrix_alternating_tensors
+from luxia.photonic_components.mzis.dual_heater import DualHeaterMzi
+from luxia.photonic_components.heater import Heater
+from luxia.photonic_meshes.mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
+from luxia.params import HeaterParams, BsMmiParams
+from typing import Optional, List
+import torch
 
 
 class ClementsBellBlock(PhotonicBlock):
@@ -20,18 +22,20 @@ class ClementsBellBlock(PhotonicBlock):
 
         Args:
         n_blocks: number of clements blocks to create dowsizes
-        mmi_i_losses: Tensor of insertion losses of the bs0 and bs1
-        mmi_imbalances: Tensor of imbalances of the mmi0 and mmi1
+        mmi_params: List of BsMmiParams objects with the parameters of the mmis
+        dac_params: DacParams object with the parameters of the DAC
     """
 
-    def __init__(self, n_blocks: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
+    def __init__(self,
+                 n_blocks: int,
+                 mmis_params: List = None,
+                 dac_params: Optional[HeaterParams] = None,
                  ):
         super(ClementsBellBlock, self).__init__(n_blocks=n_blocks)
         self._mzi = DualHeaterMzi(n_mzi=self._n_blocks,
-                                  mmi_i_losses=mmi_i_losses,
-                                  mmi_imbalances=mmi_imbalances)
+                                  mmis_params=mmis_params,
+                                  dac_params=dac_params,
+                                  )
 
     def forward(self, portsA, portsB):
         return self._mzi(portsA, portsB)
@@ -54,10 +58,12 @@ class ClementsDualHeaterBlock(PhotonicBlock):
         n_blocks: number of clements blocks to create dowsizes
     """
 
-    def __init__(self, n_blocks: int):
+    def __init__(self, n_blocks: int, dac_params: Optional[HeaterParams] = None):
         super(ClementsDualHeaterBlock, self).__init__(n_blocks=n_blocks)
-        self._heater_0 = Heater(n_heaters=self._n_blocks)
-        self._heater_1 = Heater(n_heaters=self._n_blocks)
+        self._heater_0 = Heater(n_heaters=self._n_blocks,
+                                dac_params=dac_params)
+        self._heater_1 = Heater(n_heaters=self._n_blocks,
+                                dac_params=dac_params)
 
     def forward(self, portsA, portsB):
         y_0 = self._heater_0(portsA)
@@ -65,8 +71,8 @@ class ClementsDualHeaterBlock(PhotonicBlock):
         return y_0, y_1
 
     def get_tf_matrix(self):
-        phases_0 = self._heater_0.getPhases()
-        phases_1 = self._heater_1.getPhases()
+        phases_0 = self._heater_0.get_phases()
+        phases_1 = self._heater_1.get_phases()
         return diag_matrix_alternating_tensors(phases_0, phases_1)
 
 
@@ -133,8 +139,8 @@ class ClementsBellLayer(PhotonicLayer):
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
                  opt_ps: bool = False,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmis_params: Optional[List] = None,
+                 dac_params: Optional[HeaterParams] = None,
                  is_heater_layer: bool = False
                  ):
         if is_heater_layer:
@@ -149,8 +155,8 @@ class ClementsBellLayer(PhotonicLayer):
 
             clements_block = ClementsBellBlock(
                 n_blocks=n_blks,
-                mmi_i_losses=mmi_i_losses,
-                mmi_imbalances=mmi_imbalances
+                mmis_params=mmis_params,
+                dac_params=dac_params
             )
 
         super(ClementsBellLayer, self).__init__(
@@ -163,8 +169,8 @@ class ClementsBellLayer(PhotonicLayer):
 
 class ClementsBellMesh(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmis_params: Optional[List] = None,
+                 dac_params: Optional[HeaterParams] = None,
                  is_matmul: bool = False
                  ):
         layer_list = []
@@ -174,15 +180,14 @@ class ClementsBellMesh(PhotonicMesh):
                                             is_heater_layer=True))
 
         for i in range(n_layers - 2):
-            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
-            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
+            p = None if mmis_params is None else mmis_params[i]
 
             layer = ClementsBellLayer(
                 n_inputs=n_inputs,
                 is_even_layer=(i % 2 == 0),
                 opt_ps=True,
-                mmi_i_losses=i_losses,
-                mmi_imbalances=imbalance
+                mmis_params=p,
+                dac_params=dac_params
             )
             layer_list.append(layer)
 

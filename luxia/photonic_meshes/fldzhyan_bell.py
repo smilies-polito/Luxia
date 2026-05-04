@@ -1,8 +1,10 @@
-import torch
-from .photonic_mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
-from luxia.photonic_components.heater import Heater
 from luxia.photonic_components.beamsplitters.mmi import Mmi
+from luxia.photonic_components.heater import Heater
+from luxia.photonic_meshes.mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
 from luxia.util.util_functions import diag_matrix_alternating_tensors
+from luxia.params import HeaterParams, BsMmiParams
+from typing import List, Optional
+import torch
 
 
 class FldzhyanBellEvenBlock(PhotonicBlock):
@@ -16,18 +18,15 @@ class FldzhyanBellEvenBlock(PhotonicBlock):
 
         Args:
         n_blocks: number of fldzhyan bell blocks to create dowsizes
-        mmi_i_losses: Tensor of insertion losses of the bs0 and bs1
-        mmi_imbalances: Tensor of imbalances of the mmi0 and mmi1
+        mmi_params: BsMmiParams object with the parameters of the mmi
     """
 
     def __init__(self, n_blocks: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
+                 mmi_params: Optional[BsMmiParams] = None,
                  ):
         super(FldzhyanBellEvenBlock, self).__init__(n_blocks=n_blocks)
-        self._mmi = Mmi(n_mmis=n_blocks,
-                        i_loss=mmi_i_losses,
-                        imbalance=mmi_imbalances)
+        p = BsMmiParams(num_splitters=n_blocks) if mmi_params is None else mmi_params
+        self._mmi = Mmi(mmi_params=p)
 
     def forward(self, portsA, portsB):
         return self._mmi(portsA, portsB)
@@ -52,15 +51,14 @@ class FldzhyanBellOddBlock(PhotonicBlock):
     """
 
     def __init__(self, n_blocks: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None
+                 mmi_params: Optional[BsMmiParams] = None,
+                 dac_params: Optional[HeaterParams] = None,
                  ):
         super(FldzhyanBellOddBlock, self).__init__(n_blocks=n_blocks)
-        self._heater_0 = Heater(n_heaters=n_blocks)
-        self._heater_1 = Heater(n_heaters=n_blocks)
-        self._mmi = Mmi(n_mmis=n_blocks,
-                        i_loss=mmi_i_losses,
-                        imbalance=mmi_imbalances)
+        p = BsMmiParams(num_splitters=n_blocks) if mmi_params is None else mmi_params
+        self._heater_0 = Heater(n_heaters=n_blocks, dac_params=dac_params)
+        self._heater_1 = Heater(n_heaters=n_blocks, dac_params=dac_params)
+        self._mmi = Mmi(mmi_params=p)
 
     def forward(self, portsA, portsB):
         outPs_0 = self._heater_0(portsA)
@@ -69,8 +67,8 @@ class FldzhyanBellOddBlock(PhotonicBlock):
 
     def get_tf_matrix(self):
         mmi_diag_matrix = self._mmi.get_tf_matrix()
-        heater_phases_0 = self._heater_0.getPhases()
-        heater_phases_1 = self._heater_1.getPhases()
+        heater_phases_0 = self._heater_0.get_phases()
+        heater_phases_1 = self._heater_1.get_phases()
         heater_diag_matrix = diag_matrix_alternating_tensors(
             heater_phases_0, heater_phases_1
         )
@@ -92,10 +90,10 @@ class FldzhyanDualHeaterBlock(PhotonicBlock):
         n_blocks: number of clements blocks to create dowsizes
     """
 
-    def __init__(self, n_blocks: int):
+    def __init__(self, n_blocks: int, dac_params: Optional[HeaterParams] = None):
         super(FldzhyanDualHeaterBlock, self).__init__(n_blocks=n_blocks)
-        self._heater_0 = Heater(n_heaters=self._n_blocks)
-        self._heater_1 = Heater(n_heaters=self._n_blocks)
+        self._heater_0 = Heater(n_heaters=self._n_blocks, dac_params=dac_params)
+        self._heater_1 = Heater(n_heaters=self._n_blocks, dac_params=dac_params)
 
     def forward(self, portsA, portsB):
         y_0 = self._heater_0(portsA)
@@ -103,8 +101,8 @@ class FldzhyanDualHeaterBlock(PhotonicBlock):
         return y_0, y_1
 
     def get_tf_matrix(self):
-        phases_0 = self._heater_0.getPhases()
-        phases_1 = self._heater_1.getPhases()
+        phases_0 = self._heater_0.get_phases()
+        phases_1 = self._heater_1.get_phases()
         return diag_matrix_alternating_tensors(phases_0, phases_1)
 
 
@@ -170,12 +168,13 @@ class FldzhyanBellLayer(PhotonicLayer):
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
                  opt_ps: bool = False,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmi_params: Optional[BsMmiParams] = None,
+                 dac_params: Optional[HeaterParams] = None,
                  is_heater_layer: bool = False
                  ):
         if is_heater_layer:
-            fldzhyan_block = FldzhyanDualHeaterBlock(n_blocks=n_inputs//2)
+            fldzhyan_block = FldzhyanDualHeaterBlock(n_blocks=n_inputs//2,
+                                                      dac_params=dac_params)
         else:
             # When the number of inputs is even and is an odd layer, the number
             # of blocks is reduced by 1 otherwise the n_blks = n_inputs // 2
@@ -186,14 +185,13 @@ class FldzhyanBellLayer(PhotonicLayer):
             if is_even_layer:
                 fldzhyan_block = FldzhyanBellEvenBlock(
                     n_blocks=n_blks,
-                    mmi_i_losses=mmi_i_losses,
-                    mmi_imbalances=mmi_imbalances
+                    mmi_params=mmi_params,
                 )
             else:
                 fldzhyan_block = FldzhyanBellOddBlock(
                     n_blocks=n_blks,
-                    mmi_i_losses=mmi_i_losses,
-                    mmi_imbalances=mmi_imbalances
+                    mmi_params=mmi_params,
+                    dac_params=dac_params
                 )
         super(FldzhyanBellLayer, self).__init__(
             n_inputs=n_inputs,
@@ -205,8 +203,8 @@ class FldzhyanBellLayer(PhotonicLayer):
 
 class FldzhyanBellMesh(PhotonicMesh):
     def __init__(self, n_layers: int, n_inputs: int,
-                 mmi_i_losses: torch.Tensor = None,
-                 mmi_imbalances: torch.Tensor = None,
+                 mmis_params: Optional[List] = None,
+                 dac_params: Optional[HeaterParams] = None,
                  is_matmul: bool = False
                  ):
 
@@ -214,24 +212,25 @@ class FldzhyanBellMesh(PhotonicMesh):
         layer_list.append(FldzhyanBellLayer(n_inputs=n_inputs,
                                             is_even_layer=True,
                                             opt_ps=True,
+                                            dac_params=dac_params,
                                             is_heater_layer=True))
 
         for i in range(n_layers - 2):
-            i_losses = None if mmi_i_losses is None else mmi_i_losses[i]
-            imbalance = None if mmi_imbalances is None else mmi_imbalances[i]
+            p = None if mmis_params is None else mmis_params[i]
 
             layer = FldzhyanBellLayer(
                 n_inputs=n_inputs,
                 is_even_layer=(i % 2 == 0),
                 opt_ps=True,
-                mmi_i_losses=i_losses,
-                mmi_imbalances=imbalance
+                mmi_params=p,
+                dac_params=dac_params
             )
             layer_list.append(layer)
 
         layer_list.append(FldzhyanBellLayer(n_inputs=n_inputs,
                                             is_even_layer=True,
                                             opt_ps=True,
+                                            dac_params=dac_params,
                                             is_heater_layer=True))
         super(FldzhyanBellMesh, self).__init__(
             n_layers=n_layers,
