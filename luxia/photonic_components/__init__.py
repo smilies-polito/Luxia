@@ -1,2 +1,2 @@
-from .heater import Heater
 from .photodetector import Photodetector
+from .heater import Heater
