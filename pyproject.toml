@@ -9,7 +9,7 @@ requires-python = ">=3.9"
 dependencies = [
 ]
 authors = [
-  { name="Tzamn Melendez", email="tzamn@polito.it" },
+  { name="Tzamn Melendez", email="tzamn.melendez@polito.it" },
   { name="Marco P. Abrate", email="marco.abrate@ucl.ac.uk" },
 ]
 description = "Photon Neural Networks"
@@ -22,4 +22,4 @@ classifiers = [
 keywords = ["photonic"]
 
 [project.urls]
-Homepage = "https://gitlabtsgroup.polito.it/root/luxia"
+Homepage = "https://github.com/smilies-polito/Luxia"
