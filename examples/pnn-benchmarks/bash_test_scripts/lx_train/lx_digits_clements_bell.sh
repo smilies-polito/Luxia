@@ -20,6 +20,8 @@ if [ -z "$GIT_PROJ" ]; then
     echo "setting GIT Current Project to $GIT_PROJ"
 fi
 
+SRC_FOLDER="${GIT_PROJ}/examples/pnn-benchmarks"
+
 # Exit on error
 set -e
 
@@ -86,7 +88,7 @@ NI=64  # Number of inputs
 #------------------------------------------------------------------------------#
 # Activate the LuxIA virtual environment
 #
-if ! source ${GIT_PROJ}/bash_scripts/activate_luxia.sh; then
+if ! source ${SRC_FOLDER}/bash_scripts/activate_luxia.sh; then
     echo "Failed to activate virtual environment. Exiting."
     exit 1
 fi

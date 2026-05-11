@@ -17,6 +17,8 @@ if [ -z "$GIT_PROJ" ]; then
     echo "Setting GIT_PROJ to $GIT_PROJ"
 fi
 
+SRC_FOLDER="${GIT_PROJ}/examples/pnn-benchmarks"
+
 set -e
 
 PY=python3
@@ -62,7 +64,7 @@ SEEDS=(
 RESULTS_DIR="${GIT_PROJ}/results/${DS}/numerical_error"
 mkdir -p "$RESULTS_DIR"
 
-if ! source "${GIT_PROJ}/bash_scripts/activate_luxia.sh"; then
+if ! source "${SRC_FOLDER}/bash_scripts/activate_luxia.sh"; then
     echo "Failed to activate virtual environment"
     exit 1
 fi

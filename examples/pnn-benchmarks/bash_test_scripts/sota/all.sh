@@ -4,11 +4,12 @@ if [ -z "$GIT_PROJ" ]; then
     export GIT_PROJ=$(git rev-parse --show-toplevel)
     echo "setting GIT Current Project to $GIT_PROJ"
 fi
+SRC_FOLDER="${GIT_PROJ}/examples/pnn-benchmarks"
 
 # Exit on error
 set -e
 
-# bash ${GIT_PROJ}/bash_test_scripts/sota/digits_sota_lx_clements.sh
-bash ${GIT_PROJ}/bash_test_scripts/sota/digits_sota_nx_clements.sh
-bash ${GIT_PROJ}/bash_test_scripts/sota/digits_sota_pt_clements.sh
+# bash ${SRC_FOLDER}/bash_test_scripts/sota/digits_sota_lx_clements.sh
+bash ${SRC_FOLDER}/bash_test_scripts/sota/digits_sota_nx_clements.sh
+bash ${SRC_FOLDER}/bash_test_scripts/sota/digits_sota_pt_clements.sh
 

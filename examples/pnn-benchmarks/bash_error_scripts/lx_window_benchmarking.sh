@@ -7,6 +7,7 @@ if [ -z "$GIT_PROJ" ]; then
     export GIT_PROJ=$(git rev-parse --show-toplevel)
     echo "Setting GIT_PROJ to $GIT_PROJ"
 fi
+SRC_FOLDER="${GIT_PROJ}/examples/pnn-benchmarks"
 
 set -u
 set -o pipefail
@@ -164,7 +165,7 @@ mkdir -p "$RESULTS_DIR"
 # -------------------------------------------------------------------
 # Activate environment
 # -------------------------------------------------------------------
-if ! source "${GIT_PROJ}/bash_scripts/activate_luxia.sh"; then
+if ! source "${SRC_FOLDER}/bash_scripts/activate_luxia.sh"; then
     echo "Failed to activate virtual environment"
     exit 1
 fi
