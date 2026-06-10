@@ -60,6 +60,17 @@ If you use LuxIA in your research, please cite:
 
 ```bibtex
 
+@ARTICLE{11541186,
+  author={Carmona, Tzamn Melendez and Marchesin, Federico and Abrate, Marco P. and Bienstman, Peter and Di Carlo, Stefano and Savino, Alessandro},
+  journal={IEEE Transactions on Computers}, 
+  title={LuxIA: A Lightweight Unitary matriX-based Framework Built on an Iterative Algorithm for Photonic Neural Network Training}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1-14},
+  keywords={Training;Modeling;Accuracy;Matrices;Cells (biology);Memory;Windows;Optimization;Timing;Equations;Inference Pipeline;Real-time System;Scheduling;Cloud Computing},
+  doi={10.1109/TC.2026.3698750}}
+
 ```
 
 ## Documentation
