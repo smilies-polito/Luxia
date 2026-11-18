@@ -22,8 +22,8 @@ class ClementsBellAccelerator(lx.LxAccelerator):
             lx_list.append(io.ElectricalToOptical())
 
             cm_params = ClementsBellMeshParams(
-                n_layers=n_layers,
-                n_inputs=n_inputs,
+                number_of_layers=n_layers,
+                number_of_inputs=n_inputs,
                 mmis_params=mmi_params,
                 heater_params=heater_params,
                 is_matmul=is_matmul,

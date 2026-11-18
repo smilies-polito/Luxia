@@ -99,7 +99,7 @@ for SEED in ${seed_values[@]}; do
     mkdir -p "$LOG_DIR"
 
     # Construct the training command with all parameters
-    EXEC="${PY} ${GIT_PROJ}/train.py --model=$MODEL --n_inputs=$NI --n_layers=$NL --n_networks=$NN \
+    EXEC="${PY} ${SRC_FOLDER}/train.py --model=$MODEL --n_inputs=$NI --n_layers=$NL --n_networks=$NN \
         --dataset=$DS --epoch=$EPOCH --batch_size=$BS --val_frac=$VF --lr=$LR \
         --exp_dir=$DIR --seed=$SEED --device=$DEVICE\
         $SAVE $USE_WANDB --wandb_key=$WANDB_KEY"

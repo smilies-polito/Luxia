@@ -18,8 +18,8 @@ class ClementsAcceleratorPDB(lx.LxAccelerator):
         lx_list = []
 
         p = ClementsMeshParams(
-            n_inputs=n_inputs,
-            n_layers=n_layers,
+            number_of_inputs=n_inputs,
+            number_of_layers=n_layers,
             is_matmul=is_matmul,
             window_size=window_size
         )
