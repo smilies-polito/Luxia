@@ -29,25 +29,25 @@ pip install -e .
 
 ## Examples
 
-Inside the `examples/` directory you will find a complete benchmarking project
-for comparing multiple photonic neural network tools, including LuxIA.
+The `examples/` directory contains ready-to-run Python scripts organised by topic:
 
-The benchmark project is located at:
-
-```text
-examples/pnn-benchmarks
-```
-
-It includes:
-
-* benchmarking scenarios
-* training scripts
-* testing utilities
-* comparisons across multiple architectures and tools
+| Directory | Description |
+|-----------|-------------|
+| `examples/python/basic_examples/` | One-file demos for every mesh architecture (Clements Bell, Fldzhyan Bell, Braided, …) |
+| `examples/python/accelerators/` | Full accelerator pipelines with DAC/ADC and photodetectors |
+| `examples/python/custom_mesh/` | Shows how to build your own photonic mesh on top of LuxIA primitives |
+| `examples/python/trainable_accelerator/` | End-to-end training and evaluation loop |
+| `examples/pnn-benchmarks/` | Multi-tool benchmarking suite comparing LuxIA against other PNN frameworks |
 
 ## Quick Start
 
-To quickly try a LuxIA example:
+Run a mesh forward-pass in one line:
+
+```bash
+python examples/python/basic_examples/clements_bell_example.py
+```
+
+Or kick off a training run on the Iris dataset:
 
 ```bash
 cd examples/pnn-benchmarks/bash_train_scripts/train_luxia

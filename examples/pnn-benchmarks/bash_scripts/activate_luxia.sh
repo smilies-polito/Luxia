@@ -168,7 +168,7 @@ else
     pip cache purge
     
     log "INFO" "Installing luxia from remote repository..."
-    pip install git+https://https://github.com/smilies-polito/Luxia.git || {
+    pip install git+https://github.com/smilies-polito/Luxia.git || {
         log "ERROR" "Failed to install luxia from remote repository"
         exit 1
     }
