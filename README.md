@@ -59,19 +59,25 @@ bash lx_iris_clements.sh
 If you use LuxIA in your research, please cite:
 
 ```bibtex
-
-@ARTICLE{11541186,
-  author={Carmona, Tzamn Melendez and Marchesin, Federico and Abrate, Marco P. and Bienstman, Peter and Di Carlo, Stefano and Savino, Alessandro},
+@ARTICLE{Luxia2026,
+  author={Melendez Carmona, Tzamn and Marchesin, Federico and Abrate, Marco P. and Bienstman, Peter and Di Carlo, Stefano and Savino, Alessandro},
   journal={IEEE Transactions on Computers}, 
-  title={LuxIA: A Lightweight Unitary matriX-based Framework Built on an Iterative Algorithm for Photonic Neural Network Training}, 
+  title={LuxIA: A Lightweight Unitary Matrix-Based Framework Built on an Iterative Algorithm for Photonic Neural Network Training}, 
   year={2026},
-  volume={},
-  number={},
-  pages={1-14},
-  keywords={Training;Modeling;Accuracy;Matrices;Cells (biology);Memory;Windows;Optimization;Timing;Equations;Inference Pipeline;Real-time System;Scheduling;Cloud Computing},
-  doi={10.1109/TC.2026.3698750}}
-
+  volume={75},
+  number={8},
+  pages={2885-2899},
+  keywords={Training;Modeling;Accuracy;Matrices;Cells (biology);Memory;Windows;Optimization;Timing;Equations;Edge-computing;photonics;simulation tools;neural networks;artificial intelligence},
+  doi={10.1109/TC.2026.3698750}
+}
 ```
+
+## License
+
+LuxIA is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+Any modifications to this software or derivative works must also be made available under AGPL-3.0.
+
+Copyright (C) 2024–2026 Politecnico di Torino, Marco P. Abrate
 
 ## Documentation
 
