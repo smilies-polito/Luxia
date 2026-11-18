@@ -7,19 +7,39 @@ name = "luxia"
 version = "0.0.1"
 requires-python = ">=3.9"
 dependencies = [
+  "torch",
 ]
 authors = [
-  { name="Tzamn Melendez", email="tzamn.melendez@polito.it" },
-  { name="Marco P. Abrate", email="marco.abrate@ucl.ac.uk" },
+  { name = "Tzamn Melendez", email = "tzamn.melendez@polito.it" },
+  { name = "Marco P. Abrate", email = "marco.abrate@ucl.ac.uk" },
 ]
-description = "Photon Neural Networks"
+description = "Photonic neural networks"
 readme = "README.md"
+license = { text = "AGPL-3.0" }
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["photonic"]
+keywords = [
+  "photonic",
+  "photonics",
+  "neural-networks",
+  "machine-learning",
+  "pytorch",
+  "optical-computing",
+]
 
 [project.urls]
 Homepage = "https://github.com/smilies-polito/Luxia"
