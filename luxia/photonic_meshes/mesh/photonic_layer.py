@@ -92,13 +92,10 @@ class PhotonicLayer(LxModule):
         """Initialize heaters only when opt_ps is True and needed"""
         if not self._opt_ps:
             return None
-
-        from luxia.params import HeaterParams
         if self._is_even_input and not self._is_even_layer:
-            return nn.ModuleList([Heater(heater_params=HeaterParams()),
-                                  Heater(heater_params=HeaterParams())])
+            return nn.ModuleList([Heater(1), Heater(1)])
         elif not self._is_even_input:
-            return Heater(heater_params=HeaterParams())
+            return Heater(1)
         return None
 
     def forward(self, x_complex):

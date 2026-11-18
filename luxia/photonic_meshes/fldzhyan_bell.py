@@ -2,7 +2,7 @@ from luxia.photonic_components.beamsplitters.mmi import Mmi
 from luxia.photonic_components.heater import Heater
 from luxia.photonic_meshes.mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
 from luxia.util.util_functions import diag_matrix_alternating_tensors
-from luxia.params import HeaterParams, BsMmiParams
+from luxia.params import HeaterParams, MmiParams
 from typing import List, Optional
 import torch
 
@@ -18,14 +18,14 @@ class FldzhyanBellEvenBlock(PhotonicBlock):
 
         Args:
         n_blocks: number of fldzhyan bell blocks to create dowsizes
-        mmi_params: BsMmiParams object with the parameters of the mmi
+        mmi_params: MmiParams object with the parameters of the mmi
     """
 
     def __init__(self, n_blocks: int,
-                 mmi_params: Optional[BsMmiParams] = None,
+                 mmi_params: Optional[MmiParams] = None,
                  ):
         super(FldzhyanBellEvenBlock, self).__init__(n_blocks=n_blocks)
-        p = BsMmiParams(num_splitters=n_blocks) if mmi_params is None else mmi_params
+        p = MmiParams(number_of_splitters=n_blocks) if mmi_params is None else mmi_params
         self._mmi = Mmi(mmi_params=p)
 
     def forward(self, portsA, portsB):
@@ -51,13 +51,13 @@ class FldzhyanBellOddBlock(PhotonicBlock):
     """
 
     def __init__(self, n_blocks: int,
-                 mmi_params: Optional[BsMmiParams] = None,
+                 mmi_params: Optional[MmiParams] = None,
                  dac_params: Optional[HeaterParams] = None,
                  ):
         super(FldzhyanBellOddBlock, self).__init__(n_blocks=n_blocks)
-        p = BsMmiParams(num_splitters=n_blocks) if mmi_params is None else mmi_params
-        self._heater_0 = Heater(n_heaters=n_blocks, dac_params=dac_params)
-        self._heater_1 = Heater(n_heaters=n_blocks, dac_params=dac_params)
+        p = MmiParams(number_of_splitters=n_blocks) if mmi_params is None else mmi_params
+        self._heater_0 = Heater(HeaterParams(number_of_heaters=n_blocks))
+        self._heater_1 = Heater(HeaterParams(number_of_heaters=n_blocks))
         self._mmi = Mmi(mmi_params=p)
 
     def forward(self, portsA, portsB):
@@ -92,8 +92,8 @@ class FldzhyanDualHeaterBlock(PhotonicBlock):
 
     def __init__(self, n_blocks: int, dac_params: Optional[HeaterParams] = None):
         super(FldzhyanDualHeaterBlock, self).__init__(n_blocks=n_blocks)
-        self._heater_0 = Heater(n_heaters=self._n_blocks, dac_params=dac_params)
-        self._heater_1 = Heater(n_heaters=self._n_blocks, dac_params=dac_params)
+        self._heater_0 = Heater(HeaterParams(number_of_heaters=self._n_blocks))
+        self._heater_1 = Heater(HeaterParams(number_of_heaters=self._n_blocks))
 
     def forward(self, portsA, portsB):
         y_0 = self._heater_0(portsA)
@@ -168,7 +168,7 @@ class FldzhyanBellLayer(PhotonicLayer):
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
                  opt_ps: bool = False,
-                 mmi_params: Optional[BsMmiParams] = None,
+                 mmi_params: Optional[MmiParams] = None,
                  dac_params: Optional[HeaterParams] = None,
                  is_heater_layer: bool = False
                  ):

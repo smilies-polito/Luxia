@@ -1,5 +1,5 @@
 from luxia.photonic_meshes.mesh import PhotonicMesh
-from .fldzhyan_layer import FldzhyanLayer
+from .fldzhyan_bell_layer import FldzhyanLayer
 from typing import Optional, List
 from luxia.params import DacParams
 import torch

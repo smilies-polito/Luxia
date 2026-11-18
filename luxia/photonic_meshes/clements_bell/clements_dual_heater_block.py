@@ -33,9 +33,9 @@ class ClementsDualHeaterBlock(PhotonicBlock):
         super(ClementsDualHeaterBlock, self).__init__(n_blocks=n_blocks)
 
         if heater_params is None:
-            heater_params = HeaterParams(n_heaters=n_blocks)
+            heater_params = HeaterParams(number_of_heaters=n_blocks)
         else:
-            heater_params = replace(heater_params, n_heaters=n_blocks)
+            heater_params = replace(heater_params, number_of_heaters=n_blocks)
 
         self._heater_0 = Heater(heater_params=heater_params)
         self._heater_1 = Heater(heater_params=heater_params)

@@ -35,7 +35,7 @@ class ClementsBellBlock(PhotonicBlock):
         if cb_params is None:
             cb_params = ClementsBellBlockParams()
 
-        super(ClementsBellBlock, self).__init__(n_blocks=cb_params.n_blocks)
+        super(ClementsBellBlock, self).__init__(n_blocks=cb_params.number_of_blocks)
 
         heater_params = cb_params.heater_params
         if isinstance(heater_params, list):
@@ -51,7 +51,7 @@ class ClementsBellBlock(PhotonicBlock):
             mmis_params = [mmis_params]
 
         self._mzi = DualHeaterMzi(
-            n_mzi=cb_params.n_blocks,
+            n_mzi=cb_params.number_of_blocks,
             mmis_params=mmis_params,
             dac_params=heater_params,
         )

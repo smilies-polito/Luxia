@@ -1,6 +1,6 @@
 from luxia.photonic_meshes.mesh.photonic_layer import PhotonicLayer
+from luxia.photonic_meshes.clements.clements_block import ClementsBlock
 from luxia.params import ClementsBlockParams, ClementsLayerParams
-from .clements_block import ClementsBlock
 from typing import Optional, List, Dict, Any, Tuple
 from luxia.params import HeaterParams
 
@@ -52,13 +52,12 @@ class ClementsLayer(PhotonicLayer):
     def __init__(self, params: ClementsLayerParams, debug: bool = False):
         clements_block = ClementsBlock(
             cb_params=params.clements_blk_params,
-            debug=debug,
         )
 
         super(ClementsLayer, self).__init__(
-            n_inputs=params.n_inputs,
+            n_inputs=params.number_of_inputs,
             is_even_layer=params.is_even_layer,
-            opt_ps=params.opt_ps,
+            opt_ps=params.use_optional_blocks,
             photonic_block=clements_block,
             debug=debug,
         )
@@ -71,9 +70,9 @@ class ClementsLayer(PhotonicLayer):
         blk = self.get_photonic_block()
         blk_params: ClementsBlockParams = blk.get_params()
         return ClementsLayerParams(
-            n_inputs=self.get_n_inputs(),
+            number_of_inputs=self.get_n_inputs(),
             is_even_layer=self.get_is_even_layer(),
-            opt_ps=self.get_opt_ps(),
+            use_optional_blocks=self.get_opt_ps(),
             clements_blk_params=blk_params,
         )
 

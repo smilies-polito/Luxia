@@ -2,7 +2,7 @@ from luxia.util.util_functions import diag_matrix_alternating_tensors
 from luxia.photonic_components.mzis.dual_heater import DualHeaterMzi
 from luxia.photonic_components.heater import Heater
 from luxia.photonic_meshes.mesh import PhotonicMesh, PhotonicLayer, PhotonicBlock
-from luxia.params import HeaterParams, BsMmiParams
+from luxia.params import HeaterParams, MmiParams
 from typing import Optional, List
 import torch
 
@@ -60,10 +60,9 @@ class ClementsDualHeaterBlock(PhotonicBlock):
 
     def __init__(self, n_blocks: int, dac_params: Optional[HeaterParams] = None):
         super(ClementsDualHeaterBlock, self).__init__(n_blocks=n_blocks)
-        self._heater_0 = Heater(n_heaters=self._n_blocks,
-                                dac_params=dac_params)
-        self._heater_1 = Heater(n_heaters=self._n_blocks,
-                                dac_params=dac_params)
+        hp = HeaterParams(number_of_heaters=self._n_blocks)
+        self._heater_0 = Heater(hp)
+        self._heater_1 = Heater(hp)
 
     def forward(self, portsA, portsB):
         y_0 = self._heater_0(portsA)

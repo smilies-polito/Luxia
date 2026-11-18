@@ -4,8 +4,8 @@ from luxia.params import HeaterParams
 
 @dataclass
 class ClementsLayerParams:
-    n_inputs: int
+    number_of_inputs: int
     is_even_layer: bool = True
-    opt_ps: bool = False
+    use_optional_blocks: bool = False
     clements_blk_params: ClementsBlockParams = None
     opt_heater_params: HeaterParams = None

@@ -6,7 +6,7 @@ import torch
 
 from luxia.photonic_meshes.mesh import PhotonicMesh
 from luxia.params import (
-    BsMmiParams,
+    MmiParams,
     ClementsBlockParams,
     ClementsLayerParams,
     ClementsMeshParams,
@@ -43,7 +43,7 @@ class ClementsMesh(PhotonicMesh):
 
         list_layers: List[ClementsLayer] = []
 
-        for layer_index in range(clements_mesh_params.n_layers):
+        for layer_index in range(clements_mesh_params.number_of_layers):
             layer_params = self._build_layer_params(
                 mesh_params=clements_mesh_params,
                 layer_index=layer_index,
@@ -51,8 +51,8 @@ class ClementsMesh(PhotonicMesh):
             list_layers.append(ClementsLayer(params=layer_params))
 
         super().__init__(
-            n_layers=clements_mesh_params.n_layers,
-            n_inputs=clements_mesh_params.n_inputs,
+            n_layers=clements_mesh_params.number_of_layers,
+            n_inputs=clements_mesh_params.number_of_inputs,
             is_matmul=clements_mesh_params.is_matmul,
             layer_list=list_layers,
             debug=debug,
@@ -91,12 +91,12 @@ class ClementsMesh(PhotonicMesh):
         )
 
         def _count_attr(obj: object) -> str:
-            if hasattr(obj, "n_heaters"):
-                return "n_heaters"
-            if hasattr(obj, "num_splitters"):
-                return "num_splitters"
+            if hasattr(obj, "number_of_heaters"):
+                return "number_of_heaters"
+            if hasattr(obj, "number_of_splitters"):
+                return "number_of_splitters"
             raise AttributeError(
-                f"{name} entries must expose 'n_heaters' or 'num_splitters'"
+                f"{name} entries must expose 'number_of_heaters' or 'number_of_splitters'"
             )
 
         if length == 1:
@@ -162,12 +162,12 @@ class ClementsMesh(PhotonicMesh):
     ):
         if mesh_params.heater_params is None:
             h0 = HeaterParams(
-                n_heaters=n_blks,
+                number_of_heaters=n_blks,
                 dac_params=DacParams(),
                 use_dac=False,
             )
             h1 = HeaterParams(
-                n_heaters=n_blks,
+                number_of_heaters=n_blks,
                 dac_params=DacParams(),
                 use_dac=False,
             )
@@ -193,8 +193,8 @@ class ClementsMesh(PhotonicMesh):
         n_blks: int,
     ):
         if mesh_params.mmis_params is None:
-            m0 = BsMmiParams(num_splitters=n_blks)
-            m1 = BsMmiParams(num_splitters=n_blks)
+            m0 = MmiParams(number_of_splitters=n_blks)
+            m1 = MmiParams(number_of_splitters=n_blks)
             return [m0, m1]
 
         mmi_list = cls._select_layer_param_spec(
@@ -216,7 +216,7 @@ class ClementsMesh(PhotonicMesh):
         layer_index: int,
     ) -> ClementsLayerParams:
         n_blks = cls._compute_num_blocks(
-            n_inputs=mesh_params.n_inputs,
+            n_inputs=mesh_params.number_of_inputs,
             layer_index=layer_index,
         )
         is_even_layer = (layer_index % 2 == 0)
@@ -233,15 +233,15 @@ class ClementsMesh(PhotonicMesh):
         )
 
         blk_p = ClementsBlockParams(
-            n_blocks=n_blks,
+            number_of_blocks=n_blks,
             mmi_params=mmi_params,
             heater_params=heater_params,
         )
 
         return ClementsLayerParams(
-            n_inputs=mesh_params.n_inputs,
+            number_of_inputs=mesh_params.number_of_inputs,
             is_even_layer=is_even_layer,
-            opt_ps=False,
+            use_optional_blocks=False,
             clements_blk_params=blk_p,
         )
 
@@ -277,8 +277,8 @@ class ClementsMesh(PhotonicMesh):
             mmi_params.append(blk_p.mmi_params)
 
         return ClementsMeshParams(
-            n_inputs=n_inputs,
-            n_layers=n_layers,
+            number_of_inputs=n_inputs,
+            number_of_layers=n_layers,
             is_matmul=self.get_is_matmul(),
             heater_params=heater_params,
             mmis_params=mmi_params,

@@ -1,11 +1,9 @@
-from typing import List, Optional
-
-import torch
-
-from luxia.params import BsMmiParams, DacParams, HeaterParams
+from luxia.util.util_functions import diag_matrix_alternating_tensors
 from luxia.photonic_components.heater import Heater
 from luxia.photonic_components.mzis.mzi import Mzi
-from luxia.util.util_functions import diag_matrix_alternating_tensors
+from luxia.params import DacParams, MmiParams, HeaterParams
+from typing import Optional, List
+import torch
 
 
 class DualHeaterMzi(Mzi):
@@ -20,20 +18,22 @@ class DualHeaterMzi(Mzi):
         |--- --[w]-- ---|-D
         |  bs0     bs1  |
          ---------------
+
+    Args:
+        n_mzi (int): Number of MZIs.
+        mmi_i_losses (torch.Tensor, optional): Tensor of MMI insertion losses.
+        mmi_imbalances (torch.Tensor, optional): Tensor of MMI imbalances.
     """
 
-    def __init__(
-        self,
-        n_mzi: int,
-        mmis_params: List[BsMmiParams] = None,
-        dac_params: Optional[DacParams] = None,
-    ):
-        super(DualHeaterMzi, self).__init__(
-            n_mzi=n_mzi,
-            mmis_params=mmis_params,
-        )
+    def __init__(self,
+                 n_mzi: int,
+                 mmis_params: List[MmiParams] = None,
+                 dac_params: Optional[DacParams] = None,
+                 ):
+        super(DualHeaterMzi, self).__init__(n_mzi=n_mzi,
+                                            mmis_params=mmis_params)
 
-        heater_params = HeaterParams(n_heaters=n_mzi, dac_params=dac_params)
+        heater_params = HeaterParams(number_of_heaters=n_mzi, dac_params=dac_params)
         self._heater_0 = Heater(heater_params=heater_params)
         self._heater_1 = Heater(heater_params=heater_params)
 
@@ -42,8 +42,8 @@ class DualHeaterMzi(Mzi):
         Forward pass through the MZI with two heaters.
 
         Args:
-            portA: Input tensor from port A.
-            portB: Input tensor from port B.
+            portA (torch.Tensor): Input tensor from port A.
+            portB (torch.Tensor): Input tensor from port B.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Output tensors from the MZI.
@@ -55,10 +55,10 @@ class DualHeaterMzi(Mzi):
 
     def get_tf_matrix(self) -> torch.Tensor:
         """
-        Get the transfer-function matrix for the MZI.
+        Get the transfer function matrix for the MZI.
 
         Returns:
-            torch.Tensor: Transfer-function matrix.
+            torch.Tensor: Transfer function matrix.
         """
         mmi_0_diag_matrix = self._mmi_0.get_tf_matrix()
         mmi_1_diag_matrix = self._mmi_1.get_tf_matrix()
@@ -68,11 +68,6 @@ class DualHeaterMzi(Mzi):
         heater_diag_matrix = diag_matrix_alternating_tensors(
             heater_phases_0, heater_phases_1
         )
-
-        # Ensure all matrices share the same complex dtype before multi_dot.
-        target_dtype = mmi_0_diag_matrix.dtype
-        heater_diag_matrix = heater_diag_matrix.to(dtype=target_dtype)
-        mmi_1_diag_matrix = mmi_1_diag_matrix.to(dtype=target_dtype)
 
         tf_matrix = torch.linalg.multi_dot(
             (mmi_0_diag_matrix, heater_diag_matrix, mmi_1_diag_matrix)

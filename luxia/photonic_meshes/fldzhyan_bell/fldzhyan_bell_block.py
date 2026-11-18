@@ -3,7 +3,7 @@ from luxia.photonic_meshes.mesh import PhotonicMesh, PhotonicLayer, PhotonicBloc
 from luxia.photonic_components.beamsplitters.mmi import Mmi
 from luxia.photonic_components.heater import Heater
 from luxia.util.util_functions import diag_matrix_alternating_tensor_with_ones
-from luxia.params import DacParams, BsMmiParams
+from luxia.params import DacParams, MmiParams
 from typing import Optional, List
 import torch
 
@@ -25,22 +25,22 @@ class FldzhyanBlock(PhotonicBlock):
 
     def __init__(self,
                  n_blocks: int,
-                 mmis_params: Optional[BsMmiParams] = None,
+                 mmis_params: Optional[MmiParams] = None,
                  dac_params: Optional[DacParams] = None,
                  ):
         super(FldzhyanBlock, self).__init__(n_blocks=n_blocks)
         # If the mmis_params is None, create a default parameter
         if mmis_params is None:
-            parm = BsMmiParams(num_splitters=n_blocks)
+            parm = MmiParams(number_of_splitters=n_blocks)
         else:
-            if mmis_params.num_splitters != n_blocks:
+            if mmis_params.number_of_splitters != n_blocks:
                 raise ValueError(
-                    "The number of splitters in BsMmiParams"
+                    "The number of splitters in MmiParams"
                     " must be equal to the number of blocks")
             else:
                 parm = mmis_params
 
-        heater_params = HeaterParams(n_heaters=n_blocks, dac_params=dac_params)
+        heater_params = HeaterParams(number_of_heaters=n_blocks, dac_params=dac_params)
         self._heater = Heater(heater_params=heater_params)
         self._mmi = Mmi(mmi_params=parm)
 

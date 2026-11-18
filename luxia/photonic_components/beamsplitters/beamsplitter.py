@@ -1,6 +1,6 @@
 import torch
 from luxia import LxModule
-from luxia.params import BeamsplitterParams
+from luxia.params.bs_params import BeamsplitterParams
 import copy
 
 
@@ -68,19 +68,13 @@ class Beamsplitter(LxModule):
         """
         self._check_if_coefficients_are_set()
 
-        if self._C_00.numel() == 1:
-            c00 = self._C_00.squeeze()
-            c01 = self._C_01.squeeze()
-            c10 = self._C_10.squeeze()
-            c11 = self._C_11.squeeze()
-
-            tf_block = torch.stack(
-                [
-                    torch.stack([c00, c01]),
-                    torch.stack([c10, c11])
-                ]
-            )
-            tf_matrix = [tf_block] * self._params.num_splitters
+        if self._C_00.shape[-1] == 1:
+            tf_matrix = [
+                torch.stack(
+                        [torch.tensor([self._C_00, self._C_01]),
+                         torch.tensor([self._C_10, self._C_11])]
+                )
+            ]*self._params.number_of_splitters
         else:
             tf_matrix = torch.stack(
                 [
@@ -89,7 +83,6 @@ class Beamsplitter(LxModule):
                 ],
                 dim=-1
             )
-
         # Create a block diagonal matrix with the mmi tfunction matrices
         tf_matrix = torch.block_diag(*tf_matrix)
         return tf_matrix

@@ -1,7 +1,7 @@
 from luxia.photonic_meshes.mesh import PhotonicLayer
-from .fldzhyan_block import FldzhyanBlock
+from .fldzhyan_bell_block import FldzhyanBlock
 from typing import Optional, List
-from luxia.params import DacParams, BsMmiParams
+from luxia.params import DacParams, MmiParams
 
 
 class FldzhyanLayer(PhotonicLayer):
@@ -37,7 +37,7 @@ class FldzhyanLayer(PhotonicLayer):
                                     X
         A ----------C       A ------ -----D
     Args:
-        n_inputs: n inputs of the layer, from here it can be said
+    number_of_inputs: n inputs of the layer, from here it can be said
         if it is an even or and odd layer
         is_even_layer: What type of layer to be created
         mmi_i_losses: Tensor of all the losses of the mmis of the block
@@ -46,7 +46,7 @@ class FldzhyanLayer(PhotonicLayer):
 
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
-                 mmi_params: Optional[BsMmiParams] = None,
+                 mmi_params: Optional[MmiParams] = None,
                  dac_params: Optional[DacParams] = None,
                  ):
         # When the number of inputs is even and is an odd layer, the number
@@ -57,7 +57,7 @@ class FldzhyanLayer(PhotonicLayer):
             n_blks = n_blks - 1
 
         fldzhyan_block = FldzhyanBlock(
-            n_blocks=n_blks,
+            number_of_blocks=n_blks,
             mmis_params=mmi_params,
             dac_params=dac_params
         )

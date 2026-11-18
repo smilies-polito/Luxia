@@ -24,16 +24,16 @@ class ClementsBellLayer(PhotonicLayer):
                 hp = cl_params.heater_params
 
             photonic_block = ClementsDualHeaterBlock(
-                n_blocks=cl_params.n_inputs // 2,
+                n_blocks=cl_params.number_of_inputs // 2,
                 heater_params=hp,
             )
         else:
-            n_blks = cl_params.n_inputs // 2
-            if (cl_params.n_inputs % 2 == 0) and (not cl_params.is_even_layer):
+            n_blks = cl_params.number_of_inputs // 2
+            if (cl_params.number_of_inputs % 2 == 0) and (not cl_params.is_even_layer):
                 n_blks -= 1
 
             cb_params = ClementsBellBlockParams(
-                n_blocks=n_blks,
+                number_of_blocks=n_blks,
                 mmi_params=cl_params.mmi_params,
                 heater_params=cl_params.heater_params,
             )
@@ -41,7 +41,7 @@ class ClementsBellLayer(PhotonicLayer):
             photonic_block = ClementsBellBlock(cb_params=cb_params)
 
         super(ClementsBellLayer, self).__init__(
-            n_inputs=cl_params.n_inputs,
+            n_inputs=cl_params.number_of_inputs,
             is_even_layer=cl_params.is_even_layer,
             opt_ps=True,
             photonic_block=photonic_block,

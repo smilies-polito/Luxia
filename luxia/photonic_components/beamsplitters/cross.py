@@ -1,10 +1,9 @@
 import torch
 from luxia.photonic_components.beamsplitters.beamsplitter import Beamsplitter
-from luxia.params import BsCrossParams
+from luxia.params import CrossParams
 
 
 class Cross(Beamsplitter):
-
     """
     Two input - two output cross beamsplitter.
         The model follows the following S-matrix:
@@ -12,27 +11,18 @@ class Cross(Beamsplitter):
         A -- --C                | 0 | 1 |
             X               1 x |   |   |
         B -- --D                | 1 | 0 |
-
-        Args:
-            n_crosses: number of Cross beamsplitters, to set one after the
-            other downsides
-            i_loss: Tesor of size n_crosses, this is required for setting the
-            insertion loss
-            crosstalk: Tensor of size n_crosses, this term is only valid for
-            cross type beamsplitter
     """
 
-    def __init__(self, cross_params: BsCrossParams):
-        # Constructor of the Class Cross
+    def __init__(self, cross_params: CrossParams):
         super(Cross, self).__init__(bs_params=cross_params)
 
         one = torch.tensor([1+0j])
         zro = torch.tensor([0+0j])
 
-        i_loss = self._params.i_loss
+        insertion_loss = self._params.insertion_loss
         crosstalk = self._params.crosstalk
 
-        mC = one if i_loss is None else torch.sqrt(i_loss)
+        mC = one if insertion_loss is None else torch.sqrt(insertion_loss)
 
         ct0 = None if crosstalk is None else mC * torch.sqrt(crosstalk)
         ct1 = None if crosstalk is None else mC * torch.sqrt(1 - crosstalk)

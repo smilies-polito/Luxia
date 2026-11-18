@@ -1,5 +1,6 @@
 import torch
 from luxia import LxModule
+from luxia.util.log_config import lx_log
 
 
 class ElectricalToOptical(LxModule):
@@ -9,6 +10,7 @@ class ElectricalToOptical(LxModule):
     def forward(self, x_reals):
         x_complex = torch.complex(x_reals, torch.zeros_like(x_reals))
         if self._debug:
-            print(" - EO input: ", x_reals)
-            print(" - EO output: ", x_complex)
+            lx_log.setLevel("DEBUG")
+            lx_log.debug(" Input x_reals: %s", x_reals)
+            lx_log.debug(" Output x_complex: %s", x_complex)
         return x_complex

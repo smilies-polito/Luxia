@@ -6,7 +6,7 @@ from .dac_params import DacParams
 
 @dataclass
 class HeaterParams:
-    n_heaters: int = 1
+    number_of_heaters: int = 1
     dac_params: Optional[DacParams] = None
     use_dac: bool = False
     power: float = 20e-3          # power per 2π per heater in Watts

@@ -2,7 +2,7 @@ from luxia.photonic_components.beamsplitters.cross import Cross
 from luxia.photonic_components.beamsplitters.half_cross import HalfCross
 from luxia.photonic_meshes.clements.clements_block import ClementsBlock
 from luxia.photonic_meshes.mesh.photonic_layer import PhotonicLayer
-from luxia.params import BsCrossParams, BsHalfCrossParams
+from luxia.params import CrossParams, BsHalfCrossParams, ClementsBlockParams
 from luxia.util.util_functions import alternating_tensors
 from luxia.util.log_config import lx_log
 from luxia.params import DacParams
@@ -65,11 +65,7 @@ class BraidedLayerT1(PhotonicLayer):
 
         # The type 1 of the braided layer uses a Clements block as the building
         # block, which is a combination of MMIs and phase shifters
-        clements_block = ClementsBlock(
-            n_blocks=n_blks,
-            mmis_params=mmis_params,
-            dac_params=dac_params,
-        )
+        clements_block = ClementsBlock(ClementsBlockParams(number_of_blocks=n_blks))
         super(BraidedLayerT1, self).__init__(n_inputs=n_inputs,
                                              is_even_layer=True,  # Always even
                                              opt_ps=False,  # Not used
@@ -147,8 +143,8 @@ class BraidedLayerT2(PhotonicLayer):
         if (n_inputs % 2 == 0):
             n_blks = n_blks - 1
 
-        p = BsCrossParams(
-            num_splitters=n_blks) if cross_params is None else cross_params
+        p = CrossParams(
+            number_of_splitters=n_blks) if cross_params is None else cross_params
         # The type 2 of the braided layer uses a Cross block as the building
         # block, which is just a set of cross couplers
         # with no phase shifters

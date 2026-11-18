@@ -1,7 +1,7 @@
 from luxia.photonic_meshes.mesh import PhotonicLayer
 from .fldzhyan_block import FldzhyanBlock
 from typing import Optional, List
-from luxia.params import DacParams, BsMmiParams
+from luxia.params import DacParams, MmiParams
 
 
 class FldzhyanLayer(PhotonicLayer):
@@ -46,7 +46,7 @@ class FldzhyanLayer(PhotonicLayer):
 
     def __init__(self, n_inputs: int,
                  is_even_layer: bool = True,
-                 mmi_params: Optional[BsMmiParams] = None,
+                 mmi_params: Optional[MmiParams] = None,
                  dac_params: Optional[DacParams] = None,
                  ):
         # When the number of inputs is even and is an odd layer, the number
