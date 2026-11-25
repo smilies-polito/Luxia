@@ -22,7 +22,7 @@ class ClementsBellBlock(PhotonicBlock):
 
         Args:
         n_blocks: number of clements blocks to create dowsizes
-        mmi_params: List of BsMmiParams objects with the parameters of the mmis
+        mmi_params: List of MmiParams objects with the parameters of the mmis
         dac_params: DacParams object with the parameters of the DAC
     """
 
@@ -60,9 +60,8 @@ class ClementsDualHeaterBlock(PhotonicBlock):
 
     def __init__(self, n_blocks: int, dac_params: Optional[HeaterParams] = None):
         super(ClementsDualHeaterBlock, self).__init__(n_blocks=n_blocks)
-        hp = HeaterParams(number_of_heaters=self._n_blocks)
-        self._heater_0 = Heater(hp)
-        self._heater_1 = Heater(hp)
+        self._heater_0 = Heater(HeaterParams(number_of_heaters=self._n_blocks))
+        self._heater_1 = Heater(HeaterParams(number_of_heaters=self._n_blocks))
 
     def forward(self, portsA, portsB):
         y_0 = self._heater_0(portsA)

@@ -1,11 +1,14 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = [
+  "setuptools>=68",
+  "wheel",
+]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "luxia"
 version = "0.0.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
   "torch",
 ]
@@ -15,15 +18,14 @@ authors = [
 ]
 description = "Photonic neural networks"
 readme = "README.md"
-license = { text = "AGPL-3.0" }
+license = { text = "MIT" }
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -42,4 +44,10 @@ keywords = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/smilies-polito/Luxia"
+Homepage = "https://gitlabtsgroup.polito.it/root/luxia"
+Source = "https://gitlabtsgroup.polito.it/root/luxia"
+Issues = "https://gitlabtsgroup.polito.it/root/luxia/-/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+pythonpath = ["tests/python"]

@@ -3,6 +3,7 @@ from luxia.photonic_meshes.clements.clements_block import ClementsBlock
 from luxia.params import ClementsBlockParams, ClementsLayerParams
 from typing import Optional, List, Dict, Any, Tuple
 from luxia.params import HeaterParams
+import torch
 
 
 class ClementsLayer(PhotonicLayer):
@@ -122,6 +123,16 @@ class ClementsLayer(PhotonicLayer):
         blk = self.get_photonic_block()
         power = blk.get_power_consumption()
         return float(power)
+
+    def get_phase_shifts(self) -> torch.Tensor:
+        blk = self.get_photonic_block()
+        return torch.stack([blk._heater.phase_shift,
+                            blk._mzi._heater.phase_shift], dim=0)
+
+    def set_phase_shifts(self, phases: torch.Tensor) -> None:
+        blk = self.get_photonic_block()
+        blk._heater.set_phase_shift(phases[0])
+        blk._mzi._heater.set_phase_shift(phases[1])
 
     def set_heaters_parameters(self, params: HeaterParams) -> None:
         """

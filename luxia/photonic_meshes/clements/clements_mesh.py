@@ -1,427 +1,306 @@
-from copy import deepcopy
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Tuple
 
 import torch
 
 from luxia.photonic_meshes.mesh import PhotonicMesh
+from luxia.photonic_meshes.clements.clements_layer import ClementsLayer
 from luxia.params import (
-    MmiParams,
-    ClementsBlockParams,
     ClementsLayerParams,
     ClementsMeshParams,
-    DacParams,
-    HeaterParams,
 )
-from luxia.types import lx_real  # Add this import
-from .clements_layer import ClementsLayer
-
-
-@dataclass
-class MeshMetrics:
-    total_i_losses: torch.Tensor
-    heaters_snr: torch.Tensor
-    heaters_sqnr: torch.Tensor
-    power_consumption: torch.Tensor
 
 
 class ClementsMesh(PhotonicMesh):
     """
-    Clements photonic mesh built from bound C++ ClementsLayer objects.
+    Clements rectangular photonic mesh built from bound C++ ClementsLayer objects.
 
-    Each layer is constructed directly with its final per-layer heater/MMI
-    parameters so that the underlying C++ modules are born with the correct
-    trainable parameter sizes.
+    This mesh follows the rectangular interferometer topology introduced in:
+
+        William R. Clements, Peter C. Humphreys, Benjamin J. Metcalf,
+        W. Steven Kolthammer, Ian A. Walmsley,
+        "An Optimal Design for Universal Multiport Interferometers",
+        Optica 3(12), 1460-1465 (2016).
+        DOI: 10.1364/OPTICA.3.001460
+
+    Reference:
+        https://doi.org/10.1364/OPTICA.3.001460
+
+    The mesh is defined as an ordered sequence of ClementsLayerParams objects.
+    The user must provide exactly n_layers layer-parameter objects, one per
+    physical layer in the rectangular mesh topology.
+
+    The Clements rectangular arrangement is an alternative beam-splitter and
+    phase-shifter mesh for universal multiport interferometers; the paper
+    reports half the optical depth of the Reck design and improved robustness
+    to optical loss. [web:62]
     """
 
     def __init__(
         self,
-        clements_mesh_params: ClementsMeshParams,
+        params: ClementsMeshParams,
         debug: bool = False,
     ) -> None:
-        self._total_i_losses: torch.Tensor = lx_real(0.0)  # Dtype-aware zero
+        """
+        Initialize the Clements mesh from explicit per-layer parameters.
+        """
+        self._total_i_losses: torch.Tensor = torch.tensor(0.0)
 
-        list_layers: List[ClementsLayer] = []
+        layer_list: List[ClementsLayer] = []
+        self._validate_mesh_params(params)
 
-        for layer_index in range(clements_mesh_params.number_of_layers):
-            layer_params = self._build_layer_params(
-                mesh_params=clements_mesh_params,
+        for layer_index, layer_params in enumerate(params.layer_params):
+            self._validate_layer_position(
+                mesh_params=params,
                 layer_index=layer_index,
+                layer_params=layer_params,
             )
-            list_layers.append(ClementsLayer(params=layer_params))
+            layer_list.append(ClementsLayer(params=layer_params, debug=debug))
 
         super().__init__(
-            n_layers=clements_mesh_params.number_of_layers,
-            n_inputs=clements_mesh_params.number_of_inputs,
-            is_matmul=clements_mesh_params.is_matmul,
-            layer_list=list_layers,
+            n_layers=params.number_of_layers,
+            n_inputs=params.number_of_inputs,
+            is_matmul=params.is_matmul,
+            layer_list=layer_list,
             debug=debug,
-            window_size=clements_mesh_params.window_size
         )
 
-    # ------------------------------------------------------------------
-    # Topology / parameter helpers
-    # ------------------------------------------------------------------
+    # ---------------------------------------------------------------------
+    # Validation helpers
+    # ---------------------------------------------------------------------
+    @staticmethod
+    def _validate_mesh_params(mesh_params: ClementsMeshParams) -> None:
+        """
+        Validate mesh-level structural consistency.
+        """
+        if mesh_params.number_of_inputs <= 0:
+            raise ValueError("number_of_inputs must be > 0")
+
+        if mesh_params.number_of_layers <= 0:
+            raise ValueError("number_of_layers must be > 0")
+
+        if len(mesh_params.layer_params) != mesh_params.number_of_layers:
+            raise ValueError(
+                "layer_params must have the same length as number_of_layers"
+            )
 
     @staticmethod
-    def _compute_num_blocks(n_inputs: int, layer_index: int) -> int:
-        n_blks = n_inputs // 2
-        is_even_layer = (layer_index % 2 == 0)
-        if (n_inputs % 2 == 0) and not is_even_layer:
-            n_blks -= 1
-        return n_blks
-
-    @staticmethod
-    def _clone_param(obj: Any) -> Any:
-        return deepcopy(obj)
-
-    @classmethod
-    def _normalize_param_list(
-        cls,
-        param_list: Optional[List[Any]],
-        blk_size: int,
-        name: str,
-    ):
-        if param_list is None:
-            return None
-
-        length = len(param_list)
-        assert length in (1, 2), (
-            f"{name} must have length 1 or 2, got {length}"
-        )
-
-        def _count_attr(obj: object) -> str:
-            if hasattr(obj, "number_of_heaters"):
-                return "number_of_heaters"
-            if hasattr(obj, "number_of_splitters"):
-                return "number_of_splitters"
-            raise AttributeError(
-                f"{name} entries must expose 'number_of_heaters' or 'number_of_splitters'"
-            )
-
-        if length == 1:
-            base = cls._clone_param(param_list[0])
-            count_attr = _count_attr(base)
-            setattr(base, count_attr, blk_size)
-
-            other = cls._clone_param(base)
-            return [base, other]
-
-        out = []
-        for idx, obj in enumerate(param_list):
-            cloned = cls._clone_param(obj)
-            count_attr = _count_attr(cloned)
-            count_val = getattr(cloned, count_attr)
-
-            assert count_val in (1, blk_size), (
-                f"{name}[{idx}] has {count_attr}={count_val}, "
-                f"expected 1 or {blk_size}"
-            )
-
-            setattr(cloned, count_attr, blk_size)
-            out.append(cloned)
-
-        return out
-
-    @classmethod
-    def _select_layer_param_spec(
-        cls,
-        all_params,
+    def _validate_layer_position(
+        mesh_params: ClementsMeshParams,
         layer_index: int,
-        param_name: str,
-    ):
+        layer_params: ClementsLayerParams,
+    ) -> None:
         """
-        Select the parameter spec for one layer.
-
-        Supported conventions:
-        - None
-        - [[left, right]] shared across all layers
-        - [[[...], [...], ...]] one entry per layer
+        Validate that one layer parameter object matches its mesh position.
         """
-        if all_params is None:
-            return None
-
-        if len(all_params) == 0:
-            return None
-
-        if len(all_params) == 1:
-            return all_params[0]
-
-        assert layer_index < len(all_params), (
-            f"{param_name} has {len(all_params)} layer entries, "
-            f"but requested layer_index={layer_index}"
-        )
-        return all_params[layer_index]
-
-    @classmethod
-    def _resolve_heater_params(
-        cls,
-        mesh_params: ClementsMeshParams,
-        layer_index: int,
-        n_blks: int,
-    ):
-        if mesh_params.heater_params is None:
-            h0 = HeaterParams(
-                number_of_heaters=n_blks,
-                dac_params=DacParams(),
-                use_dac=False,
+        if layer_params.number_of_inputs != mesh_params.number_of_inputs:
+            raise ValueError(
+                f"layer_params[{layer_index}].number_of_inputs must equal "
+                f"mesh number_of_inputs ({mesh_params.number_of_inputs}), "
+                f"got {layer_params.number_of_inputs}"
             )
-            h1 = HeaterParams(
-                number_of_heaters=n_blks,
-                dac_params=DacParams(),
-                use_dac=False,
+
+        expected_even_layer = (layer_index % 2) == 0
+        if layer_params.is_even_layer != expected_even_layer:
+            raise ValueError(
+                f"layer_params[{layer_index}].is_even_layer must be "
+                f"{expected_even_layer} for layer index {layer_index}"
             )
-            return [h0, h1]
 
-        ht_list = cls._select_layer_param_spec(
-            all_params=mesh_params.heater_params,
-            layer_index=layer_index,
-            param_name="heater_params",
-        )
-
-        return cls._normalize_param_list(
-            param_list=ht_list,
-            blk_size=n_blks,
-            name="heater_params",
-        )
-
-    @classmethod
-    def _resolve_mmi_params(
-        cls,
-        mesh_params: ClementsMeshParams,
-        layer_index: int,
-        n_blks: int,
-    ):
-        if mesh_params.mmis_params is None:
-            m0 = MmiParams(number_of_splitters=n_blks)
-            m1 = MmiParams(number_of_splitters=n_blks)
-            return [m0, m1]
-
-        mmi_list = cls._select_layer_param_spec(
-            all_params=mesh_params.mmis_params,
-            layer_index=layer_index,
-            param_name="mmis_params",
-        )
-
-        return cls._normalize_param_list(
-            param_list=mmi_list,
-            blk_size=n_blks,
-            name="mmis_params",
-        )
-
-    @classmethod
-    def _build_layer_params(
-        cls,
-        mesh_params: ClementsMeshParams,
-        layer_index: int,
-    ) -> ClementsLayerParams:
-        n_blks = cls._compute_num_blocks(
-            n_inputs=mesh_params.number_of_inputs,
-            layer_index=layer_index,
-        )
-        is_even_layer = (layer_index % 2 == 0)
-
-        heater_params = cls._resolve_heater_params(
-            mesh_params=mesh_params,
-            layer_index=layer_index,
-            n_blks=n_blks,
-        )
-        mmi_params = cls._resolve_mmi_params(
-            mesh_params=mesh_params,
-            layer_index=layer_index,
-            n_blks=n_blks,
-        )
-
-        blk_p = ClementsBlockParams(
-            number_of_blocks=n_blks,
-            mmi_params=mmi_params,
-            heater_params=heater_params,
-        )
-
-        return ClementsLayerParams(
-            number_of_inputs=mesh_params.number_of_inputs,
-            is_even_layer=is_even_layer,
-            use_optional_blocks=False,
-            clements_blk_params=blk_p,
-        )
-
-    # ------------------------------------------------------------------
+    # ---------------------------------------------------------------------
     # Parameter re-application / export
-    # ------------------------------------------------------------------
-
+    # ---------------------------------------------------------------------
     def set_params(self, params: ClementsMeshParams) -> None:
         """
-        Re-apply mesh parameters to all existing layers.
-
-        This is still allowed for explicit reconfiguration after construction,
-        but __init__ no longer depends on it.
+        Re-apply mesh parameters to the existing layers.
         """
-        for i, layer in enumerate(self.get_photonic_layers()):
-            layer_params = self._build_layer_params(
+        self._validate_mesh_params(params)
+
+        if params.number_of_inputs != self.get_n_inputs():
+            raise ValueError(
+                "ClementsMesh.set_params: number_of_inputs shall not change"
+            )
+
+        if params.number_of_layers != self.get_n_layers():
+            raise ValueError(
+                "ClementsMesh.set_params: number_of_layers shall not change"
+            )
+
+        if params.is_matmul != self.get_is_matmul():
+            raise ValueError(
+                "ClementsMesh.set_params: is_matmul shall not change"
+            )
+
+        for layer_index, (layer, layer_params) in enumerate(
+            zip(self.get_photonic_layers(), params.layer_params)
+        ):
+            self._validate_layer_position(
                 mesh_params=params,
-                layer_index=i,
+                layer_index=layer_index,
+                layer_params=layer_params,
             )
             layer.set_params(params=layer_params)
 
     def get_params(self) -> ClementsMeshParams:
-        n_layers = self.get_n_layers()
-        n_inputs = self.get_n_inputs()
-
-        heater_params: List[Any] = []
-        mmi_params: List[Any] = []
+        """
+        Export the current mesh parameterization.
+        """
+        layer_params: List[ClementsLayerParams] = []
 
         for layer in self.get_photonic_layers():
-            lay_p: ClementsLayerParams = layer.get_params()
-            blk_p: ClementsBlockParams = lay_p.clements_blk_params
-            heater_params.append(blk_p.heater_params)
-            mmi_params.append(blk_p.mmi_params)
+            layer_params.append(layer.get_params())
 
         return ClementsMeshParams(
-            number_of_inputs=n_inputs,
-            number_of_layers=n_layers,
+            number_of_inputs=self.get_n_inputs(),
+            number_of_layers=self.get_n_layers(),
+            layer_params=layer_params,
             is_matmul=self.get_is_matmul(),
-            heater_params=heater_params,
-            mmis_params=mmi_params,
         )
 
-    # ------------------------------------------------------------------
-    # Weight / phase snapshot helpers
-    # ------------------------------------------------------------------
-
-    def get_layer_phase_shifts(self) -> List[torch.Tensor]:
-        """
-        Return a list of phase tensors, one per layer.
-
-        Each entry is the result of ClementsLayer.get_phase_shifts(), with
-        shape [n_heaters_layer, n_heaters_per_block] as defined in the C++
-        layer implementation.
-        """
-        phases_per_layer: List[torch.Tensor] = []
-
-        for layer in self.get_photonic_layers():
-            layer_phases: torch.Tensor = layer.get_phase_shifts()
-            phases_per_layer.append(layer_phases)
-
-        return phases_per_layer
-
+    # ---------------------------------------------------------------------
+    # Weight / phase helpers
+    # ---------------------------------------------------------------------
     def get_weights_tensor(self) -> torch.Tensor:
         """
-        Return a single 1D tensor with all heater phases in this mesh.
-
-        Layers can have different [n_heaters_layer, n_heaters_per_block],
-        so we flatten each layer and concatenate.
+        Return all heater phases as one flattened tensor.
         """
-        phases_per_layer = self.get_layer_phase_shifts()
+        phase_list = self.get_layer_phase_shifts()
 
-        if not phases_per_layer:
+        if not phase_list:
             return torch.empty(0)
 
-        flat_list: List[torch.Tensor] = []
-        for ph in phases_per_layer:
-            flat_list.append(ph.reshape(-1))
+        flat_phase_list = [phase.reshape(-1) for phase in phase_list]
+        return torch.cat(flat_phase_list, dim=0)
 
-        return torch.cat(flat_list, dim=0)
-
-    # ------------------------------------------------------------------
+    # ---------------------------------------------------------------------
     # Metrics helpers
-    # ------------------------------------------------------------------
-
+    # ---------------------------------------------------------------------
     @staticmethod
     def _to_scalar_tensor(value: Any) -> torch.Tensor:
+        """
+        Convert a metric value to a scalar float32 tensor.
+        """
         if isinstance(value, torch.Tensor):
             if value.numel() == 1:
                 return value.reshape(())
             return value.to(dtype=torch.float32).mean().reshape(())
-        return lx_real(float(value))  # Dtype-aware scalar tensor
 
-    def _get_layer_heater_metrics(self, layer):
+        return torch.tensor(float(value), dtype=torch.float32)
+
+    def _get_layer_heater_metrics_payload(
+        self,
+        layer: Any,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Return the raw heater metrics payload for one layer.
+        """
         metrics = layer.get_heater_metrics()
-        heater_list = metrics.get("heater_metrics", [])
-        return heater_list, metrics
+        heater_metrics = metrics.get("heater_metrics", [])
+        return heater_metrics, metrics
 
-    def get_total_i_losses(self) -> torch.Tensor:
-        P_in = self.get_input_optical_power()
-        P_out = self.get_output_optical_power()
-        self._total_i_losses = lx_real(10.0) * torch.log10(P_in / P_out)  # Dtype-aware 10.0
+    def get_total_insertion_losses(self) -> torch.Tensor:
+        """
+        Return the total insertion loss of the mesh in dB.
+        """
+        input_power = self.get_input_optical_power()
+        output_power = self.get_output_optical_power()
+        self._total_i_losses = 10.0 * torch.log10(input_power / output_power)
         return self._total_i_losses
 
-    def get_heaters_quantization_error(self):
-        mesh_errors = []
+    def get_heaters_quantization_errors(self) -> List[List[List[torch.Tensor]]]:
+        """
+        Return heater quantization errors for all layers.
+
+        The return structure is aligned with the existing mesh/layer/block
+        traversal used by downstream aggregation code.
+        """
+        mesh_errors: List[List[List[torch.Tensor]]] = []
 
         for layer in self.get_photonic_layers():
-            heater_list, _ = self._get_layer_heater_metrics(layer)
+            heater_metrics, _ = self._get_layer_heater_metrics_payload(layer)
+
             heater_errors = [
-                self._to_scalar_tensor(hm.get("quantization_error", 0.0))
-                for hm in heater_list
+                self._to_scalar_tensor(metric.get("quantization_error", 0.0))
+                for metric in heater_metrics
             ]
+
             mesh_errors.append([heater_errors])
 
         return mesh_errors
 
     def get_heaters_snr(self) -> torch.Tensor:
-        lst_snr = []
+        """
+        Return the average heater SNR across layers.
+        """
+        snr_per_layer: List[torch.Tensor] = []
 
         for layer in self.get_photonic_layers():
-            heater_list, _ = self._get_layer_heater_metrics(layer)
-            snr_vals = [float(hm.get("snr_db", 0.0)) for hm in heater_list]
-            if snr_vals:
-                lst_snr.append(lx_real(snr_vals))  # Dtype-aware tensor from list
+            heater_metrics, _ = self._get_layer_heater_metrics_payload(layer)
+            snr_values = [
+                float(metric.get("snr_db", 0.0))
+                for metric in heater_metrics
+            ]
 
-        if not lst_snr:
-            return lx_real(0.0)  # Dtype-aware zero tensor
+            if snr_values:
+                snr_per_layer.append(
+                    torch.tensor(snr_values, dtype=torch.float32)
+                )
 
-        return torch.stack(lst_snr, dim=0).mean(dim=0)
+        if not snr_per_layer:
+            return torch.tensor(0.0, dtype=torch.float32)
+
+        return torch.stack(snr_per_layer, dim=0).mean(dim=0)
 
     def get_heaters_sqnr(self) -> torch.Tensor:
-        lst_sqnr = []
+        """
+        Return the average heater SQNR across layers.
+        """
+        sqnr_per_layer: List[torch.Tensor] = []
 
         for layer in self.get_photonic_layers():
-            heater_list, _ = self._get_layer_heater_metrics(layer)
-            sqnr_vals = [float(hm.get("sqnr_db", 0.0)) for hm in heater_list]
-            if sqnr_vals:
-                lst_sqnr.append(lx_real(snr_vals))  # Dtype-aware tensor from list
+            heater_metrics, _ = self._get_layer_heater_metrics_payload(layer)
+            sqnr_values = [
+                float(metric.get("sqnr_db", 0.0))
+                for metric in heater_metrics
+            ]
 
-        if not lst_sqnr:
-            return lx_real(0.0)  # Dtype-aware zero tensor
+            if sqnr_values:
+                sqnr_per_layer.append(
+                    torch.tensor(sqnr_values, dtype=torch.float32)
+                )
 
-        return torch.stack(lst_sqnr, dim=0).mean(dim=0)
+        if not sqnr_per_layer:
+            return torch.tensor(0.0, dtype=torch.float32)
+
+        return torch.stack(sqnr_per_layer, dim=0).mean(dim=0)
 
     def get_power_consumption(self) -> torch.Tensor:
-        total_power = lx_real(0.0)  # Dtype-aware accumulation
+        """
+        Return the total heater power consumption of the mesh.
+        """
+        total_power = 0.0
 
         for layer in self.get_photonic_layers():
-            _, metrics = self._get_layer_heater_metrics(layer)
-            total_power += lx_real(float(metrics.get("total_power_consumption", 0.0)))
+            _, metrics = self._get_layer_heater_metrics_payload(layer)
+            total_power += float(metrics.get("total_power_consumption", 0.0))
 
-        return total_power
+        return torch.tensor(total_power, dtype=torch.float32)
 
-    # ------------------------------------------------------------------
-    # Metrics aggregation API
-    # ------------------------------------------------------------------
+    # ---------------------------------------------------------------------
+    # Canonical metrics API
+    # ---------------------------------------------------------------------
+    def get_metrics(self) -> Dict[str, Any]:
+        """
+        Return mesh metrics in dictionary form.
 
-    def compute_metrics(self) -> MeshMetrics:
-        return MeshMetrics(
-            total_i_losses=self.get_total_i_losses(),
-            heaters_snr=self.get_heaters_snr(),
-            heaters_sqnr=self.get_heaters_sqnr(),
-            power_consumption=self.get_power_consumption(),
-        )
-
-    def get_metric(self, name: str) -> Any:
-        metrics = self.compute_metrics()
-        try:
-            return getattr(metrics, name)
-        except AttributeError as exc:
-            available = list(MeshMetrics.__dataclass_fields__.keys())
-            raise KeyError(
-                f"Unknown metric '{name}'. Available metrics: {available}"
-            ) from exc
-
-    def compute_metrics_dict(self) -> Dict[str, Any]:
-        m = self.compute_metrics()
+        This is the canonical public metrics API for module-level
+        metric aggregation.
+        """
         return {
-            "total_i_losses": m.total_i_losses,
-            "heaters_snr": m.heaters_snr,
-            "heaters_sqnr": m.heaters_sqnr,
-            "power_consumption": m.power_consumption,
+            "total_i_losses": self.get_total_insertion_losses(),
+            "heaters_snr": self.get_heaters_snr(),
+            "heaters_sqnr": self.get_heaters_sqnr(),
+            "power_consumption": self.get_power_consumption(),
+            "heaters_quantization_errors": (
+                self.get_heaters_quantization_errors()
+            ),
         }

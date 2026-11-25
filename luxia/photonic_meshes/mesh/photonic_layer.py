@@ -3,6 +3,7 @@ from luxia.photonic_components import Heater
 from luxia.util.util_functions import alternating_tensors
 from luxia.util.log_config import lx_log
 from luxia import LxModule
+from typing import Optional
 from torch import nn
 import torch
 
@@ -218,6 +219,12 @@ class PhotonicLayer(LxModule):
             tf_core = self._ph_blocks.get_tf_matrix()
             ones = torch.ones(1, device=device)
             return torch.block_diag(tf_core, ones) if self._is_even_layer else torch.block_diag(ones, tf_core)
+
+    def get_phase_shifts(self) -> Optional[torch.Tensor]:
+        return None
+
+    def set_phase_shifts(self, phases: torch.Tensor) -> None:
+        pass
 
     # Clean getters
     def get_photonic_block(self): return self._ph_blocks

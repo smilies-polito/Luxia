@@ -2,7 +2,7 @@ from luxia.photonic_components.beamsplitters.cross import Cross
 from luxia.photonic_components.beamsplitters.half_cross import HalfCross
 from luxia.photonic_meshes.clements.clements_block import ClementsBlock
 from luxia.photonic_meshes.mesh.photonic_layer import PhotonicLayer
-from luxia.params import CrossParams, BsHalfCrossParams, ClementsBlockParams
+from luxia.params import CrossParams, BsHalfCrossParams, ClementsBlockParams, HeaterParams
 from luxia.util.util_functions import alternating_tensors
 from luxia.util.log_config import lx_log
 from luxia.params import DacParams
@@ -63,9 +63,11 @@ class BraidedLayerT1(PhotonicLayer):
         # The number of blocks is always half of the number of inputs
         n_blks = n_inputs // 2
 
-        # The type 1 of the braided layer uses a Clements block as the building
-        # block, which is a combination of MMIs and phase shifters
-        clements_block = ClementsBlock(ClementsBlockParams(number_of_blocks=n_blks))
+        hp = HeaterParams(number_of_heaters=n_blks)
+        clements_block = ClementsBlock(ClementsBlockParams(
+            number_of_blocks=n_blks,
+            heater_params=[hp, hp],
+        ))
         super(BraidedLayerT1, self).__init__(n_inputs=n_inputs,
                                              is_even_layer=True,  # Always even
                                              opt_ps=False,  # Not used
@@ -85,6 +87,16 @@ class BraidedLayerT1(PhotonicLayer):
     def get_heaters_sqnr(self):
         sqnr = self.get_photonic_block().get_heaters_sqnr()
         return sqnr
+
+    def get_phase_shifts(self) -> torch.Tensor:
+        blk = self.get_photonic_block()
+        return torch.stack([blk._heater.phase_shift,
+                            blk._mzi._heater.phase_shift], dim=0)
+
+    def set_phase_shifts(self, phases: torch.Tensor) -> None:
+        blk = self.get_photonic_block()
+        blk._heater.set_phase_shift(phases[0])
+        blk._mzi._heater.set_phase_shift(phases[1])
 
     def set_heaters_parameters(self, params: DacParams):
         blk = self.get_photonic_block()

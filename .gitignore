@@ -207,6 +207,9 @@ install_manifest.txt
 *~
 *.bak
 
+# Machine-specific requirements
+requirements-cuda-test.txt
+
 # Generated example weights
 /examples/cpp/trainable_accelerator/trained_weights.csv
 /examples/cpp/trainable_accelerator/trained_biases.csv

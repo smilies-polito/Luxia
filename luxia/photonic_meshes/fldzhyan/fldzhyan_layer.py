@@ -2,6 +2,7 @@ from luxia.photonic_meshes.mesh import PhotonicLayer
 from .fldzhyan_block import FldzhyanBlock
 from typing import Optional, List
 from luxia.params import DacParams, MmiParams
+import torch
 
 
 class FldzhyanLayer(PhotonicLayer):
@@ -93,6 +94,14 @@ class FldzhyanLayer(PhotonicLayer):
         blk = self.get_photonic_block()
         sqnr = blk.get_heater_sqnr()
         return sqnr
+
+    def get_phase_shifts(self) -> torch.Tensor:
+        blk = self.get_photonic_block()
+        return blk._heater.phase_shift.unsqueeze(0)
+
+    def set_phase_shifts(self, phases: torch.Tensor) -> None:
+        blk = self.get_photonic_block()
+        blk._heater.set_phase_shift(phases[0])
 
     def set_heaters_parameters(self, params: DacParams):
         """
